@@ -1,0 +1,7 @@
+[package]
+name = "byteswapdb"
+version = "0.1.0"
+edition = "2021"
+authors = ["Almaz Murzabekov <almaz@murzabekov.net>"]
+
+[dependencies]
