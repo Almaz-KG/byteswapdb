@@ -15,7 +15,6 @@ pub enum Commands {
 
     /// Runs a Read-Eval-Print-Loop (REPL)
     Repl,
-
 }
 
 #[derive(Debug, Args)]

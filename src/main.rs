@@ -20,8 +20,8 @@ fn start_repl() {
         Ok(command.trim().to_string())
     }
 
-    while let Ok(command) = get_command(){
-        if command == "exit" || command == "q!"{
+    while let Ok(command) = get_command() {
+        if command == "exit" || command == "q!" {
             println!("Goodbye!");
             break;
         }

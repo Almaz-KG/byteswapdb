@@ -3,7 +3,6 @@ use std::{iter::Peekable, str::Chars};
 use crate::Token;
 use common::errors::ParsingError;
 
-
 pub struct Lexer<'a> {
     iter: Peekable<Chars<'a>>,
 }
@@ -15,7 +14,10 @@ impl<'a> Iterator for Lexer<'a> {
         match self.scan() {
             Ok(Some(token)) => Some(Ok(token)),
             Ok(None) => self.iter.peek().map(|c| {
-                Err(ParsingError::UnexpectedToken(format!("Unexpected token {}", c)))
+                Err(ParsingError::UnexpectedToken(format!(
+                    "Unexpected token {}",
+                    c
+                )))
             }),
             Err(err) => Some(Err(err)),
         }
@@ -23,7 +25,6 @@ impl<'a> Iterator for Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
-    // #[allow(dead_code)]
     pub fn new(input: &'a str) -> Self {
         Self {
             iter: input.chars().peekable(),
