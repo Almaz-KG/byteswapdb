@@ -1,7 +1,8 @@
-use crate::errors::ByteSwapDBError;
 use std::fmt::Display;
 use std::iter::Peekable;
 use std::str::Chars;
+
+use common::errors::DatabaseError;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
@@ -70,16 +71,13 @@ pub struct Lexer<'a> {
 }
 
 impl<'a> Iterator for Lexer<'a> {
-    type Item = Result<Token, ByteSwapDBError>;
+    type Item = Result<Token, DatabaseError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.scan() {
             Ok(Some(token)) => Some(Ok(token)),
             Ok(None) => self.iter.peek().map(|c| {
-                Err(ByteSwapDBError::ParsingError(format!(
-                    "Unexpected character {}",
-                    c
-                )))
+                Err(DatabaseError::ParsingError(format!("Unexpected character {}", c)))
             }),
             Err(err) => Some(Err(err)),
         }
@@ -87,14 +85,14 @@ impl<'a> Iterator for Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
-    #[allow(dead_code)]
+    // #[allow(dead_code)]
     pub fn new(input: &'a str) -> Self {
         Self {
             iter: input.chars().peekable(),
         }
     }
 
-    pub fn scan(&mut self) -> Result<Option<Token>, ByteSwapDBError> {
+    pub fn scan(&mut self) -> Result<Option<Token>, DatabaseError> {
         self.consume_whitespaces();
 
         match self.iter.peek() {
@@ -129,7 +127,7 @@ impl<'a> Lexer<'a> {
         self.next_while(|c| c.is_whitespace());
     }
 
-    fn scan_string(&mut self) -> Result<Option<Token>, ByteSwapDBError> {
+    fn scan_string(&mut self) -> Result<Option<Token>, DatabaseError> {
         if self.next_if(|c| c == '\'').is_none() {
             return Ok(None);
         }
@@ -146,7 +144,7 @@ impl<'a> Lexer<'a> {
                 }
                 Some(c) => result.push(c),
                 None => {
-                    return Err(ByteSwapDBError::ParsingError(
+                    return Err(DatabaseError::ParsingError(
                         "Unterminated string literal".to_string(),
                     ))
                 }

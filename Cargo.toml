@@ -4,5 +4,12 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Almaz Murzabekov <almaz@murzabekov.net>"]
 
+[workspace]
+members = [
+    "common",
+    "sql-parser",
+]
+
 [dependencies]
 clap = { version = "4.5.4", features = ["derive"] }
+sql-parser = { version = "0.1.0", path = "sql-parser" }

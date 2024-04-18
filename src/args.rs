@@ -1,10 +1,3 @@
-// #[derive(Debug, Parser)]
-// #[command(author, version, about, long_about = None)]
-// pub struct Args {
-//     #[arg(short, long)]
-//     pub query: String,
-// }
-
 use clap::{Args, Parser, Subcommand};
 
 #[derive(Debug, Parser)]
@@ -18,12 +11,16 @@ pub struct Cli {
 #[derive(Debug, Subcommand)]
 pub enum Commands {
     /// Parses the given sql string and prints the result to stdout
-    ParseSql(SqlQuery),
+    Parse(SqlQuery),
+
+    /// Runs a Read-Eval-Print-Loop (REPL)
+    Repl,
+
 }
 
 #[derive(Debug, Args)]
 pub struct SqlQuery {
     /// An sql string to parse and print
     #[arg(short, long)]
-    pub query: Option<String>,
+    pub query: String,
 }
