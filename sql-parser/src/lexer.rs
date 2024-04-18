@@ -3,6 +3,7 @@ use std::{iter::Peekable, str::Chars};
 use crate::Token;
 use common::errors::ParsingError;
 
+#[derive(Debug)]
 pub struct Lexer<'a> {
     iter: Peekable<Chars<'a>>,
 }
