@@ -1,6 +1,21 @@
 use std::fmt::Display;
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Debug)]
+pub enum ParsingError {
+    UnexpectedToken(String),
+    UnexpectedEOF,
+}
+
+impl Display for ParsingError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ParsingError::UnexpectedToken(token) => write!(f, "Unexpected token: {}", token),
+            ParsingError::UnexpectedEOF => write!(f, "Unexpected EOF"),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub enum DatabaseError {
     ParsingError(String),
 }
