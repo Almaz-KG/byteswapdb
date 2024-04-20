@@ -22,10 +22,17 @@ impl<'a> Parser<'a> {
     pub fn parse(&mut self) -> Result<Ast, ParsingError> {
         match self.get_current_token()? {
             Token::Identifier(ident) if ident.to_lowercase() == Keyword::Select.to_string() => {
-                self.lexer.next();
+                
                 self.parse_select()
             }
             _ => unimplemented!(),
+        }
+    }
+
+    fn assert_current_token_is(&mut self, keyword: Keyword) -> Result<(), ParsingError> {
+        match self.get_current_token()? {
+            Token::Identifier(ident) if ident.to_lowercase() == keyword.to_string() => Ok(()),
+            _ => Err(ParsingError::UnexpectedToken(format!("Expected: {}", keyword))),
         }
     }
 
