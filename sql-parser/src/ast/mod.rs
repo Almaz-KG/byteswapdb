@@ -1,14 +1,8 @@
 mod entities;
 mod expression;
 
-pub use entities::{CreateTable, Delete, DropTable, Insert, Select, Update};
-pub use expression::{Expresion, Literal};
-
-#[derive(Debug, PartialEq)]
-pub enum Ordering {
-    Ascending,
-    Descending,
-}
+pub use entities::{CreateTable, Delete, DropTable, Insert, Select, Update, Ordering};
+pub use expression::{Expression, Literal, ColumnLiteral};
 
 #[derive(Debug, PartialEq)]
 pub enum Ast {

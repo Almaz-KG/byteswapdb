@@ -1,28 +1,25 @@
-use crate::ast::{Ast, Expresion, Literal, Ordering, Select};
+use crate::ast::{Ast, ColumnLiteral, Expression, Literal, Ordering, Select};
 use crate::parser::Parser;
 use crate::token::{Keyword, Token};
 use common::errors::ParsingError;
 use std::str::FromStr;
-
-// TODO: Remove coupling between parser and database internal entity types
-use common::types::Column;
 
 pub trait SelectQueryParser<'a> {
     fn parse_select(&mut self) -> Result<Ast, ParsingError>;
 
     fn parse_distinct(&mut self) -> Result<bool, ParsingError>;
 
-    fn parse_columns(&mut self) -> Result<Vec<Expresion>, ParsingError>;
+    fn parse_columns(&mut self) -> Result<Vec<ColumnLiteral>, ParsingError>;
 
     fn parse_from(&mut self) -> Result<String, ParsingError>;
 
-    fn parse_where_clause(&mut self) -> Result<Option<Expresion>, ParsingError>;
+    fn parse_where_clause(&mut self) -> Result<Option<Expression>, ParsingError>;
 
-    fn parse_group_by_clause(&mut self) -> Result<Option<Vec<Column>>, ParsingError>;
+    fn parse_group_by_clause(&mut self) -> Result<Option<Vec<String>>, ParsingError>;
 
-    fn parse_having_clause(&mut self) -> Result<Option<Expresion>, ParsingError>;
+    fn parse_having_clause(&mut self) -> Result<Option<Expression>, ParsingError>;
 
-    fn parse_order_by_clause(&mut self) -> Result<Option<Vec<(Column, Ordering)>>, ParsingError>;
+    fn parse_order_by_clause(&mut self) -> Result<Option<Vec<(String, Ordering)>>, ParsingError>;
 
     fn parse_limit(&mut self) -> Result<Option<usize>, ParsingError>;
 }
@@ -57,12 +54,13 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
         }
     }
 
-    fn parse_columns(&mut self) -> Result<Vec<Expresion>, ParsingError> {
+    fn parse_columns(&mut self) -> Result<Vec<ColumnLiteral>, ParsingError> {
         let current_token = self.get_current_token()?;
         match current_token {
             Token::Asterisk => {
                 self.lexer.next();
-                Ok(vec![Expresion::Literal(Literal::String("*".into()))])
+                // TODO: Add handler for AS keyword
+                Ok(vec![ColumnLiteral::from_expression(Expression::Literal(Literal::String("*".into())))])
             }
             _ => {
                 let mut columns = vec![];
@@ -74,11 +72,11 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
                             if Keyword::from_str(&identifier.to_lowercase()).is_ok() {
                                 break;
                             }
-                            columns.push(Expresion::Literal(Literal::String(identifier)));
+                            columns.push(ColumnLiteral::from_expression(Expression::Literal(Literal::String(identifier))));
                             self.lexer.next();
                         }
                         Token::Number(num) => {
-                            columns.push(Expresion::Literal(Literal::String(num)));
+                            columns.push(ColumnLiteral::from_expression(Expression::Literal(Literal::String(num))));
                             self.lexer.next();
                         }
                         Token::Period => {
@@ -86,10 +84,10 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
                                 .last_mut()
                                 .ok_or(ParsingError::UnexpectedToken(".".into()))?;
 
-                            match last_column {
-                                Expresion::Value => unimplemented!(),
-                                Expresion::Operation => unimplemented!(),
-                                Expresion::Literal(literal) => {
+                            match &mut last_column.expression {
+                                Expression::Value => unimplemented!(),
+                                Expression::Operation => unimplemented!(),
+                                Expression::Literal(literal) => {
                                     match literal {
                                         Literal::String(ref mut value) => {
                                             self.lexer.next(); // skipping current . period-token
@@ -148,19 +146,19 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
         }
     }
 
-    fn parse_where_clause(&mut self) -> Result<Option<Expresion>, ParsingError> {
+    fn parse_where_clause(&mut self) -> Result<Option<Expression>, ParsingError> {
         Ok(None)
     }
 
-    fn parse_group_by_clause(&mut self) -> Result<Option<Vec<Column>>, ParsingError> {
+    fn parse_group_by_clause(&mut self) -> Result<Option<Vec<String>>, ParsingError> {
         Ok(None)
     }
 
-    fn parse_having_clause(&mut self) -> Result<Option<Expresion>, ParsingError> {
+    fn parse_having_clause(&mut self) -> Result<Option<Expression>, ParsingError> {
         Ok(None)
     }
 
-    fn parse_order_by_clause(&mut self) -> Result<Option<Vec<(Column, Ordering)>>, ParsingError> {
+    fn parse_order_by_clause(&mut self) -> Result<Option<Vec<(String, Ordering)>>, ParsingError> {
         Ok(None)
     }
 
@@ -188,7 +186,7 @@ mod tests {
 
         assert_eq!(
             select_stmt.columns,
-            vec![Expresion::Literal(Literal::String("*".to_string()))]
+            vec![ColumnLiteral::from_expression(Expression::Literal(Literal::String("*".to_string())))]
         );
         assert_eq!(select_stmt.from, "users".to_string());
     }
@@ -219,7 +217,7 @@ mod tests {
         let select_stmt = parse_query("SELECT 1").expect("Expected valid select statement");
         assert_eq!(
             select_stmt.columns,
-            vec![Expresion::Literal(Literal::String("1".to_string()))]
+            vec![ColumnLiteral::from_expression(Expression::Literal(Literal::String("1".to_string())))]
         );
         assert_eq!(select_stmt.from, "".to_string());
     }
@@ -245,7 +243,7 @@ mod tests {
             parse_query("SELECT col1 FROM users").expect("Expected valid select statement");
         assert_eq!(
             select_stmt.columns,
-            vec![Expresion::Literal(Literal::String("col1".to_string()))]
+            vec![ColumnLiteral::from_expression(Expression::Literal(Literal::String("col1".to_string())))]
         );
     }
 
@@ -256,9 +254,9 @@ mod tests {
         assert_eq!(
             select_stmt.columns,
             vec![
-                Expresion::Literal(Literal::String("col1".to_string())),
-                Expresion::Literal(Literal::String("col2".to_string())),
-                Expresion::Literal(Literal::String("col3".to_string())),
+                ColumnLiteral::from_expression(Expression::Literal(Literal::String("col1".to_string()))),
+                ColumnLiteral::from_expression(Expression::Literal(Literal::String("col2".to_string()))),
+                ColumnLiteral::from_expression(Expression::Literal(Literal::String("col3".to_string()))),
             ]
         );
     }
@@ -269,9 +267,9 @@ mod tests {
             parse_query("SELECT users.col1 FROM users").expect("Expected valid select statement");
         assert_eq!(
             select_stmt.columns,
-            vec![Expresion::Literal(Literal::String(
-                "users.col1".to_string()
-            ))]
+            vec![
+                ColumnLiteral::from_expression(Expression::Literal(Literal::String("users.col1".to_string()))),
+            ]
         );
     }
 
@@ -282,8 +280,8 @@ mod tests {
         assert_eq!(
             select_stmt.columns,
             vec![
-                Expresion::Literal(Literal::String("users.col1".to_string())),
-                Expresion::Literal(Literal::String("users.col2".to_string())),
+                ColumnLiteral::from_expression(Expression::Literal(Literal::String("users.col1".to_string()))),
+                ColumnLiteral::from_expression(Expression::Literal(Literal::String("users.col2".to_string()))),
             ]
         );
     }
@@ -295,8 +293,8 @@ mod tests {
         assert_eq!(
             select_stmt.columns,
             vec![
-                Expresion::Literal(Literal::String("users.id".to_string())),
-                Expresion::Literal(Literal::String("orders.order_id".to_string())),
+                ColumnLiteral::from_expression(Expression::Literal(Literal::String("users.id".to_string()))),
+                ColumnLiteral::from_expression(Expression::Literal(Literal::String("orders.order_id".to_string()))),
             ]
         );
     }
@@ -307,9 +305,9 @@ mod tests {
             .expect("Expected valid select statement");
         assert_eq!(
             select_stmt.columns,
-            vec![Expresion::Literal(Literal::String(
-                "users.id.value".to_string(),
-            ))]
+            vec![
+                ColumnLiteral::from_expression(Expression::Literal(Literal::String("users.id.value".to_string()))),
+            ]
         );
     }
 
@@ -320,15 +318,15 @@ mod tests {
         assert_eq!(
             select_stmt.columns,
             vec![
-                Expresion::Literal(Literal::String("users.id.value".to_string())),
-                Expresion::Literal(Literal::String("orders.order_id".to_string())),
+                ColumnLiteral::from_expression(Expression::Literal(Literal::String("users.id.value".to_string()))),
+                ColumnLiteral::from_expression(Expression::Literal(Literal::String("orders.order_id".to_string()))),
             ]
         );
     }
 
     // field_ambiguous: "SELECT id FROM movies, genres",
-
     // field_unknown: "SELECT unknown FROM movies",
+
     // field_unknown_aliased: "SELECT movies.id FROM movies AS m",
     // field_unknown_qualified: "SELECT movies.unknown FROM movies",
     // field_unknown_table: "SELECT unknown.id FROM movies",

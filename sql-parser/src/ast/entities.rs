@@ -1,14 +1,13 @@
-use crate::ast::{Expresion, Ordering};
-use common::types::Column;
+use crate::ast::{Expression, ColumnLiteral};
 
 #[derive(Debug, PartialEq)]
 pub struct Select {
-    pub columns: Vec<Expresion>,
+    pub columns: Vec<ColumnLiteral>,
     pub from: String,
-    pub where_clause: Option<Expresion>,
-    pub group_by: Option<Vec<Column>>,
-    pub having: Option<Expresion>,
-    pub order_by: Option<Vec<(Column, Ordering)>>,
+    pub where_clause: Option<Expression>,
+    pub group_by: Option<Vec<String>>,
+    pub having: Option<Expression>,
+    pub order_by: Option<Vec<(String, Ordering)>>,
     pub limit: Option<usize>,
     pub distinct: bool,
 }
@@ -16,7 +15,7 @@ pub struct Select {
 #[derive(Debug, PartialEq)]
 pub struct CreateTable {
     pub table_name: String,
-    pub columns: Vec<Column>,
+    pub columns: Vec<ColumnLiteral>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -28,19 +27,26 @@ pub struct DropTable {
 #[derive(Debug, PartialEq)]
 pub struct Delete {
     pub table_name: String,
-    pub where_clause: Option<Expresion>,
+    pub where_clause: Option<Expression>,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct Insert {
     pub table_name: String,
-    pub columns: Vec<Column>,
-    pub values: Vec<Vec<Expresion>>,
+    pub columns: Vec<String>,
+    pub values: Vec<Vec<Expression>>,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct Update {
     pub table_name: String,
-    pub set_clause: Vec<(Column, Expresion)>,
-    pub where_clause: Option<Expresion>,
+    pub set_clause: Vec<(String, Expression)>,
+    pub where_clause: Option<Expression>,
+}
+
+
+#[derive(Debug, PartialEq)]
+pub enum Ordering {
+    Ascending,
+    Descending,
 }
