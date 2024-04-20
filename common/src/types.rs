@@ -1,6 +1,5 @@
 use std::fmt::Display;
 
-
 #[derive(Debug, PartialEq)]
 pub enum DataType {
     Boolean,
@@ -22,7 +21,6 @@ impl Display for DataType {
     }
 }
 
-
 #[derive(Debug)]
 pub enum Value {
     Boolean(bool),
@@ -33,10 +31,8 @@ pub enum Value {
     Null,
 }
 
-
 #[derive(Debug, PartialEq)]
 pub struct Column {
     pub name: String,
     pub data_type: DataType,
 }
-

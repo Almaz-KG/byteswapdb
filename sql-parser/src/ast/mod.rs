@@ -10,7 +10,6 @@ pub enum Ordering {
     Descending,
 }
 
-
 #[derive(Debug, PartialEq)]
 pub enum Ast {
     Select {
