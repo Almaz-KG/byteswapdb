@@ -152,6 +152,7 @@ mod tests {
     #[test]
     fn test_select_query() {
         let select_stmt = parse_query("SELECT * FROM users");
+        // dbg!(&select_stmt);
         assert!(select_stmt.is_ok());
         let select_stmt = select_stmt.unwrap();
 

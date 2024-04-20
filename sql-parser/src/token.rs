@@ -63,7 +63,7 @@ impl Display for Token {
 }
 
 /// Reserved SQL Keywords
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Keyword {
     And,
     As,
