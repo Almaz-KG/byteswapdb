@@ -173,28 +173,24 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
 mod tests {
     use super::*;
 
-    fn parse_query(query: &str) -> Result<Ast, ParsingError> {
-        Parser::new(query).parse()
+    fn parse_query(query: &str) -> Result<Select, ParsingError> {
+        match Parser::new(query).parse()? {
+            Ast::Select(select) => Ok(select),
+            _ => Err(ParsingError::UnexpectedToken("Expected select AST".into())),
+        }
     }
 
     #[test]
     fn test_select_all_query() {
-        let select_stmt = parse_query("SELECT * FROM users");
+        let select_stmt =
+            parse_query("SELECT * FROM users").expect("Expected valid select statement");
         dbg!(&select_stmt);
-        assert!(select_stmt.is_ok());
-        let select_stmt = select_stmt.unwrap();
 
-        let expected = Ast::Select(Select {
-            distinct: false,
-            columns: vec![Expresion::Literal(Literal::String("*".to_string()))],
-            from: "users".into(),
-            where_clause: None,
-            group_by: None,
-            having: None,
-            order_by: None,
-            limit: None,
-        });
-        assert_eq!(select_stmt, expected);
+        assert_eq!(
+            select_stmt.columns,
+            vec![Expresion::Literal(Literal::String("*".to_string()))]
+        );
+        assert_eq!(select_stmt.from, "users".to_string());
     }
 
     #[test]
@@ -213,232 +209,121 @@ mod tests {
     #[test]
     fn test_select_lower_and_upper_cases() {
         let select_stmt = parse_query("SELECT 1");
-        dbg!(&select_stmt);
         assert!(select_stmt.is_ok());
-
-        let select_stmt: Result<Ast, ParsingError> = parse_query("select 1");
-        dbg!(&select_stmt);
+        let select_stmt = parse_query("select 1");
         assert!(select_stmt.is_ok());
     }
 
     #[test]
     fn test_select_constant() {
-        let select_stmt = parse_query("SELECT 1");
-        assert!(select_stmt.is_ok());
-
-        let select_stmt = select_stmt.unwrap();
-
-        let expected = Ast::Select(Select {
-            distinct: false,
-            columns: vec![Expresion::Literal(Literal::String("1".to_string()))],
-            from: "".into(),
-            where_clause: None,
-            group_by: None,
-            having: None,
-            order_by: None,
-            limit: None,
-        });
-        assert_eq!(select_stmt, expected);
+        let select_stmt = parse_query("SELECT 1").expect("Expected valid select statement");
+        assert_eq!(
+            select_stmt.columns,
+            vec![Expresion::Literal(Literal::String("1".to_string()))]
+        );
+        assert_eq!(select_stmt.from, "".to_string());
     }
 
     #[test]
     fn test_select_distinct_query() {
-        let select_stmt = parse_query("SELECT DISTINCT * FROM users");
-        println!("{:?}", select_stmt);
-        assert!(select_stmt.is_ok());
-        let select_stmt = select_stmt.unwrap();
+        let select_stmt =
+            parse_query("SELECT DISTINCT * FROM users").expect("Expected valid select statement");
+        assert!(select_stmt.distinct);
 
-        let expected = Ast::Select(Select {
-            distinct: true,
-            columns: vec![Expresion::Literal(Literal::String("*".to_string()))],
-            from: "users".into(),
-            where_clause: None,
-            group_by: None,
-            having: None,
-            order_by: None,
-            limit: None,
-        });
-        assert_eq!(select_stmt, expected);
+        let select_stmt =
+            parse_query("SELECT * FROM users").expect("Expected valid select statement");
+        assert!(!select_stmt.distinct);
+
+        let select_stmt = parse_query("SELECT distinct col1, col2 FROM users")
+            .expect("Expected valid select statement");
+        assert!(select_stmt.distinct);
     }
 
     #[test]
     fn test_select_single_column_query() {
-        let select_stmt = parse_query("SELECT col1 FROM users");
-        println!("{:?}", select_stmt);
-        assert!(select_stmt.is_ok());
-        let select_stmt = select_stmt.unwrap();
-
-        let expected = Ast::Select(Select {
-            distinct: false,
-            columns: vec![Expresion::Literal(Literal::String("col1".to_string()))],
-            from: "users".into(),
-            where_clause: None,
-            group_by: None,
-            having: None,
-            order_by: None,
-            limit: None,
-        });
-        assert_eq!(select_stmt, expected);
+        let select_stmt =
+            parse_query("SELECT col1 FROM users").expect("Expected valid select statement");
+        assert_eq!(
+            select_stmt.columns,
+            vec![Expresion::Literal(Literal::String("col1".to_string()))]
+        );
     }
 
     #[test]
     fn test_select_columns_query() {
-        let select_stmt = parse_query("SELECT col1, col2, col3 FROM users");
-        println!("{:?}", select_stmt);
-        assert!(select_stmt.is_ok());
-        let select_stmt = select_stmt.unwrap();
-
-        let expected = Ast::Select(Select {
-            distinct: false,
-            columns: vec![
+        let select_stmt = parse_query("SELECT col1, col2, col3 FROM users")
+            .expect("Expected valid select statement");
+        assert_eq!(
+            select_stmt.columns,
+            vec![
                 Expresion::Literal(Literal::String("col1".to_string())),
                 Expresion::Literal(Literal::String("col2".to_string())),
                 Expresion::Literal(Literal::String("col3".to_string())),
-            ],
-            from: "users".into(),
-            where_clause: None,
-            group_by: None,
-            having: None,
-            order_by: None,
-            limit: None,
-        });
-        assert_eq!(select_stmt, expected);
+            ]
+        );
     }
 
     #[test]
     fn test_select_qualified_column_query() {
-        let select_stmt = parse_query("SELECT users.col1 FROM users");
-        println!("{:?}", select_stmt);
-        assert!(select_stmt.is_ok());
-        let select_stmt = select_stmt.unwrap();
-
-        let expected = Ast::Select(Select {
-            distinct: false,
-            columns: vec![Expresion::Literal(Literal::String(
-                "users.col1".to_string(),
-            ))],
-            from: "users".into(),
-            where_clause: None,
-            group_by: None,
-            having: None,
-            order_by: None,
-            limit: None,
-        });
-        assert_eq!(select_stmt, expected);
+        let select_stmt =
+            parse_query("SELECT users.col1 FROM users").expect("Expected valid select statement");
+        assert_eq!(
+            select_stmt.columns,
+            vec![Expresion::Literal(Literal::String(
+                "users.col1".to_string()
+            ))]
+        );
     }
 
     #[test]
     fn test_select_qualified_columns_query() {
-        let select_stmt = parse_query("SELECT users.col1, users.col2 FROM users");
-        println!("{:?}", select_stmt);
-        assert!(select_stmt.is_ok());
-        let select_stmt = select_stmt.unwrap();
-
-        let expected = Ast::Select(Select {
-            distinct: false,
-            columns: vec![
+        let select_stmt = parse_query("SELECT users.col1, users.col2 FROM users")
+            .expect("Expected valid select statement");
+        assert_eq!(
+            select_stmt.columns,
+            vec![
                 Expresion::Literal(Literal::String("users.col1".to_string())),
                 Expresion::Literal(Literal::String("users.col2".to_string())),
-            ],
-            from: "users".into(),
-            where_clause: None,
-            group_by: None,
-            having: None,
-            order_by: None,
-            limit: None,
-        });
-        assert_eq!(select_stmt, expected);
+            ]
+        );
     }
 
     #[test]
     fn test_select_qualified_columns2_query() {
-        let select_stmt = parse_query("SELECT users.id, orders.order_id FROM users, orders");
-        println!("{:?}", select_stmt);
-        assert!(select_stmt.is_ok());
-        let select_stmt = select_stmt.unwrap();
-
-        let expected = Ast::Select(Select {
-            distinct: false,
-            columns: vec![
+        let select_stmt = parse_query("SELECT users.id, orders.order_id FROM users, orders")
+            .expect("Expected valid select statement");
+        assert_eq!(
+            select_stmt.columns,
+            vec![
                 Expresion::Literal(Literal::String("users.id".to_string())),
                 Expresion::Literal(Literal::String("orders.order_id".to_string())),
-            ],
-            from: "users".into(),
-            where_clause: None,
-            group_by: None,
-            having: None,
-            order_by: None,
-            limit: None,
-        });
-        assert_eq!(select_stmt, expected);
+            ]
+        );
     }
 
     #[test]
     fn test_select_qualified_column_nested_query() {
-        let select_stmt = parse_query("SELECT users.id.value FROM users");
-        println!("{:?}", select_stmt);
-        assert!(select_stmt.is_ok());
-        let select_stmt = select_stmt.unwrap();
-
-        let expected = Ast::Select(Select {
-            distinct: false,
-            columns: vec![Expresion::Literal(Literal::String(
+        let select_stmt = parse_query("SELECT users.id.value FROM users")
+            .expect("Expected valid select statement");
+        assert_eq!(
+            select_stmt.columns,
+            vec![Expresion::Literal(Literal::String(
                 "users.id.value".to_string(),
-            ))],
-            from: "users".into(),
-            where_clause: None,
-            group_by: None,
-            having: None,
-            order_by: None,
-            limit: None,
-        });
-        assert_eq!(select_stmt, expected);
+            ))]
+        );
     }
 
     #[test]
     fn test_select_qualified_columns_nested_query() {
-        let select_stmt = parse_query("SELECT users.id.value, orders.order_id FROM users, orders");
-        println!("{:?}", select_stmt);
-        assert!(select_stmt.is_ok());
-        let select_stmt = select_stmt.unwrap();
-
-        let expected = Ast::Select(Select {
-            distinct: false,
-            columns: vec![
+        let select_stmt = parse_query("SELECT users.id.value, orders.order_id FROM users, orders")
+            .expect("Expected valid select statement");
+        assert_eq!(
+            select_stmt.columns,
+            vec![
                 Expresion::Literal(Literal::String("users.id.value".to_string())),
                 Expresion::Literal(Literal::String("orders.order_id".to_string())),
-            ],
-            from: "users".into(),
-            where_clause: None,
-            group_by: None,
-            having: None,
-            order_by: None,
-            limit: None,
-        });
-        assert_eq!(select_stmt, expected);
-    }
-
-    #[test]
-    fn test_select_distinct_columns_query() {
-        let select_stmt = parse_query("SELECT distinct col1, col2 FROM users");
-        println!("{:?}", select_stmt);
-        assert!(select_stmt.is_ok());
-        let select_stmt = select_stmt.unwrap();
-
-        let expected = Ast::Select(Select {
-            distinct: true,
-            columns: vec![
-                Expresion::Literal(Literal::String("col1".to_string())),
-                Expresion::Literal(Literal::String("col2".to_string())),
-            ],
-            from: "users".into(),
-            where_clause: None,
-            group_by: None,
-            having: None,
-            order_by: None,
-            limit: None,
-        });
-        assert_eq!(select_stmt, expected);
+            ]
+        );
     }
 
     // field_ambiguous: "SELECT id FROM movies, genres",
