@@ -74,7 +74,6 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
                             if Keyword::from_str(&identifier.to_lowercase()).is_ok() {
                                 break;
                             }
-                            // dbg!(&identifier);
                             columns.push(Expresion::Literal(Literal::String(identifier)));
                             self.lexer.next();
                         }
@@ -82,6 +81,30 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
                             columns.push(Expresion::Literal(Literal::String(num)));
                             self.lexer.next();
                         }
+                        Token::Period => {
+                            let last_column = columns.last_mut().ok_or(ParsingError::UnexpectedToken(".".into()))?;
+
+                            match last_column {
+                                Expresion::Value => unimplemented!(),
+                                Expresion::Operation => unimplemented!(),
+                                Expresion::Literal(literal) => {
+                                    match literal {
+                                        Literal::String(ref mut value) => {
+                                            self.lexer.next(); // skipping current . period-token
+                                            let col_name = self.get_current_token()?;
+                                            match col_name {
+                                                Token::Identifier(identifier) => {
+                                                    *value = format!("{value}.{identifier}");
+                                                },
+                                                _ => Err(ParsingError::UnexpectedToken(format!("Expected identifier, got: {}", col_name)))?,
+                                            }
+                                        },
+                                        _ => Err(ParsingError::UnexpectedToken(".".into()))?,
+                                    }
+                                },
+                            };
+                            self.lexer.next();
+                        },
                         Token::Comma => {
                             self.lexer.next();
                             expected_next = true;
@@ -150,9 +173,9 @@ mod tests {
     }
 
     #[test]
-    fn test_select_query() {
+    fn test_select_all_query() {
         let select_stmt = parse_query("SELECT * FROM users");
-        // dbg!(&select_stmt);
+        dbg!(&select_stmt);
         assert!(select_stmt.is_ok());
         let select_stmt = select_stmt.unwrap();
 
@@ -180,6 +203,17 @@ mod tests {
         let select_stmt = parse_query("SELECT 1,");
         dbg!(&select_stmt);
         assert!(select_stmt.is_err());
+    }
+
+    #[test]
+    fn test_select_lower_and_upper_cases() {
+        let select_stmt = parse_query("SELECT 1");
+        dbg!(&select_stmt);
+        assert!(select_stmt.is_ok());
+
+        let select_stmt: Result<Ast, ParsingError> = parse_query("select 1");
+        dbg!(&select_stmt);
+        assert!(select_stmt.is_ok());
     }
 
     #[test]
@@ -223,8 +257,28 @@ mod tests {
     }
 
     #[test]
+    fn test_select_single_column_query() {
+        let select_stmt = parse_query("SELECT col1 FROM users");
+        println!("{:?}", select_stmt);
+        assert!(select_stmt.is_ok());
+        let select_stmt = select_stmt.unwrap();
+
+        let expected = Ast::Select(Select {
+            distinct: false,
+            columns: vec![Expresion::Literal(Literal::String("col1".to_string()))],
+            from: "users".into(),
+            where_clause: None,
+            group_by: None,
+            having: None,
+            order_by: None,
+            limit: None,
+        });
+        assert_eq!(select_stmt, expected);
+    }
+
+    #[test]
     fn test_select_columns_query() {
-        let select_stmt = parse_query("SELECT col1, col2 FROM users");
+        let select_stmt = parse_query("SELECT col1, col2, col3 FROM users");
         println!("{:?}", select_stmt);
         assert!(select_stmt.is_ok());
         let select_stmt = select_stmt.unwrap();
@@ -234,6 +288,120 @@ mod tests {
             columns: vec![
                 Expresion::Literal(Literal::String("col1".to_string())),
                 Expresion::Literal(Literal::String("col2".to_string())),
+                Expresion::Literal(Literal::String("col3".to_string())),
+            ],
+            from: "users".into(),
+            where_clause: None,
+            group_by: None,
+            having: None,
+            order_by: None,
+            limit: None,
+        });
+        assert_eq!(select_stmt, expected);
+    }
+
+    #[test]
+    fn test_select_qualified_column_query() {
+        let select_stmt = parse_query("SELECT users.col1 FROM users");
+        println!("{:?}", select_stmt);
+        assert!(select_stmt.is_ok());
+        let select_stmt = select_stmt.unwrap();
+
+        let expected = Ast::Select(Select {
+            distinct: false,
+            columns: vec![Expresion::Literal(Literal::String(
+                "users.col1".to_string(),
+            ))],
+            from: "users".into(),
+            where_clause: None,
+            group_by: None,
+            having: None,
+            order_by: None,
+            limit: None,
+        });
+        assert_eq!(select_stmt, expected);
+    }
+
+    #[test]
+    fn test_select_qualified_columns_query() {
+        let select_stmt = parse_query("SELECT users.col1, users.col2 FROM users");
+        println!("{:?}", select_stmt);
+        assert!(select_stmt.is_ok());
+        let select_stmt = select_stmt.unwrap();
+
+        let expected = Ast::Select(Select {
+            distinct: false,
+            columns: vec![
+                Expresion::Literal(Literal::String("users.col1".to_string())),
+                Expresion::Literal(Literal::String("users.col2".to_string())),
+            ],
+            from: "users".into(),
+            where_clause: None,
+            group_by: None,
+            having: None,
+            order_by: None,
+            limit: None,
+        });
+        assert_eq!(select_stmt, expected);
+    }
+
+    #[test]
+    fn test_select_qualified_columns2_query() {
+        let select_stmt = parse_query("SELECT users.id, orders.order_id FROM users, orders");
+        println!("{:?}", select_stmt);
+        assert!(select_stmt.is_ok());
+        let select_stmt = select_stmt.unwrap();
+
+        let expected = Ast::Select(Select {
+            distinct: false,
+            columns: vec![
+                Expresion::Literal(Literal::String("users.id".to_string())),
+                Expresion::Literal(Literal::String("orders.order_id".to_string())),
+            ],
+            from: "users".into(),
+            where_clause: None,
+            group_by: None,
+            having: None,
+            order_by: None,
+            limit: None,
+        });
+        assert_eq!(select_stmt, expected);
+    }
+
+    #[test]
+    fn test_select_qualified_column_nested_query() {
+        let select_stmt = parse_query("SELECT users.id.value FROM users");
+        println!("{:?}", select_stmt);
+        assert!(select_stmt.is_ok());
+        let select_stmt = select_stmt.unwrap();
+
+        let expected = Ast::Select(Select {
+            distinct: false,
+            columns: vec![Expresion::Literal(Literal::String(
+                "users.id.value".to_string(),
+            ))],
+            from: "users".into(),
+            where_clause: None,
+            group_by: None,
+            having: None,
+            order_by: None,
+            limit: None,
+        });
+        assert_eq!(select_stmt, expected);
+    }
+
+    #[test]
+    fn test_select_qualified_columns_nested_query() {
+        let select_stmt = parse_query("SELECT users.id.value, orders.order_id FROM users, orders");
+        println!("{:?}", select_stmt);
+        assert!(select_stmt.is_ok());
+        let select_stmt = select_stmt.unwrap();
+
+        let expected = Ast::Select(Select {
+            distinct: false,
+            columns: vec![
+                Expresion::Literal(Literal::String("users.id.value".to_string())),
+                Expresion::Literal(Literal::String("orders.order_id".to_string())),
             ],
             from: "users".into(),
             where_clause: None,
@@ -268,16 +436,8 @@ mod tests {
         assert_eq!(select_stmt, expected);
     }
 
-    // bare: "SELECT",
-    // trailing_comma: "SELECT 1,",
-    // lowercase: "select 1",
-
-    // field_single: "SELECT id FROM movies",
-    // field_multi: "SELECT id, title FROM movies",
     // field_ambiguous: "SELECT id FROM movies, genres",
-    // field_qualified: "SELECT movies.id FROM movies",
-    // field_qualified_multi: "SELECT movies.id, genres.id FROM movies, genres",
-    // field_qualified_nested: "SELECT movies.id.value FROM movies",
+
     // field_unknown: "SELECT unknown FROM movies",
     // field_unknown_aliased: "SELECT movies.id FROM movies AS m",
     // field_unknown_qualified: "SELECT movies.unknown FROM movies",
