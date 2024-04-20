@@ -1,35 +1,35 @@
-use std::iter::Peekable;
-use std::str::FromStr;
-
-use crate::ast::{Ast, Expresion, Literal, Ordering};
-use crate::lexer::Lexer;
+use crate::ast::{Ast, Expresion, Literal, Ordering, Select};
+use crate::parser::Parser;
 use crate::token::{Keyword, Token};
 use common::errors::ParsingError;
+use std::str::FromStr;
+
+// TODO: Remove coupling between parser and database internal entity types
 use common::types::Column;
 
-pub struct Parser<'a> {
-    lexer: Peekable<Lexer<'a>>,
+pub trait SelectQueryParser<'a> {
+    fn parse_select(&mut self) -> Result<Ast, ParsingError>;
+
+    fn parse_distinct(&mut self) -> Result<bool, ParsingError>;
+
+    fn parse_columns(&mut self) -> Result<Vec<Expresion>, ParsingError>;
+
+    fn parse_from(&mut self) -> Result<String, ParsingError>;
+
+    fn parse_where_clause(&mut self) -> Result<Option<Expresion>, ParsingError>;
+
+    fn parse_group_by_clause(&mut self) -> Result<Option<Vec<Column>>, ParsingError>;
+
+    fn parse_having_clause(&mut self) -> Result<Option<Expresion>, ParsingError>;
+
+    fn parse_order_by_clause(&mut self) -> Result<Option<Vec<(Column, Ordering)>>, ParsingError>;
+
+    fn parse_limit(&mut self) -> Result<Option<usize>, ParsingError>;
 }
 
-impl<'a> Parser<'a> {
-    pub fn new(query: &'a str) -> Self {
-        Parser {
-            lexer: Lexer::new(query).peekable(),
-        }
-    }
-
-    pub fn parse(&mut self) -> Result<Ast, ParsingError> {
-        match self.get_current_token()? {
-            Token::Identifier(ident) if ident.to_lowercase() == Keyword::Select.to_string() => {
-                self.lexer.next();
-                self.parse_select()
-            }
-            _ => unimplemented!(),
-        }
-    }
-
+impl<'a> SelectQueryParser<'a> for Parser<'a> {
     fn parse_select(&mut self) -> Result<Ast, ParsingError> {
-        Ok(Ast::Select {
+        Ok(Ast::Select(Select {
             distinct: self.parse_distinct()?,
             columns: self.parse_columns()?,
             from: self.parse_from()?,
@@ -38,14 +38,7 @@ impl<'a> Parser<'a> {
             having: self.parse_having_clause()?,
             order_by: self.parse_order_by_clause()?,
             limit: self.parse_limit()?,
-        })
-    }
-
-    fn get_current_token(&mut self) -> Result<Token, ParsingError> {
-        match self.lexer.peek() {
-            Some(Ok(token)) => Ok(token.clone()),
-            _ => Err(ParsingError::UnexpectedEOF),
-        }
+        }))
     }
 
     #[allow(clippy::let_and_return)]
@@ -168,7 +161,7 @@ mod tests {
         assert!(select_stmt.is_ok());
         let select_stmt = select_stmt.unwrap();
 
-        let expected = Ast::Select {
+        let expected = Ast::Select(Select {
             distinct: false,
             columns: vec![Expresion::Literal(Literal::String("*".to_string()))],
             from: "users".into(),
@@ -177,7 +170,7 @@ mod tests {
             having: None,
             order_by: None,
             limit: None,
-        };
+        });
         assert_eq!(select_stmt, expected);
     }
 
@@ -201,7 +194,7 @@ mod tests {
 
         let select_stmt = select_stmt.unwrap();
 
-        let expected = Ast::Select {
+        let expected = Ast::Select(Select {
             distinct: false,
             columns: vec![Expresion::Literal(Literal::String("1".to_string()))],
             from: "".into(),
@@ -210,7 +203,7 @@ mod tests {
             having: None,
             order_by: None,
             limit: None,
-        };
+        });
         assert_eq!(select_stmt, expected);
     }
 
@@ -221,7 +214,7 @@ mod tests {
         assert!(select_stmt.is_ok());
         let select_stmt = select_stmt.unwrap();
 
-        let expected = Ast::Select {
+        let expected = Ast::Select(Select {
             distinct: true,
             columns: vec![Expresion::Literal(Literal::String("*".to_string()))],
             from: "users".into(),
@@ -230,7 +223,7 @@ mod tests {
             having: None,
             order_by: None,
             limit: None,
-        };
+        });
         assert_eq!(select_stmt, expected);
     }
 
@@ -241,7 +234,7 @@ mod tests {
         assert!(select_stmt.is_ok());
         let select_stmt = select_stmt.unwrap();
 
-        let expected = Ast::Select {
+        let expected = Ast::Select(Select {
             distinct: false,
             columns: vec![
                 Expresion::Literal(Literal::String("col1".to_string())),
@@ -253,7 +246,7 @@ mod tests {
             having: None,
             order_by: None,
             limit: None,
-        };
+        });
         assert_eq!(select_stmt, expected);
     }
 
@@ -264,7 +257,7 @@ mod tests {
         assert!(select_stmt.is_ok());
         let select_stmt = select_stmt.unwrap();
 
-        let expected = Ast::Select {
+        let expected = Ast::Select(Select {
             distinct: true,
             columns: vec![
                 Expresion::Literal(Literal::String("col1".to_string())),
@@ -276,7 +269,7 @@ mod tests {
             having: None,
             order_by: None,
             limit: None,
-        };
+        });
         assert_eq!(select_stmt, expected);
     }
 

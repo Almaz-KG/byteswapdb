@@ -180,12 +180,6 @@ impl Display for Keyword {
     }
 }
 
-// impl From<Keyword> for String {
-//     fn from(value: Keyword) -> Self {
-//         value.into()
-//     }
-// }
-
 impl FromStr for Keyword {
     type Err = ();
     fn from_str(value: &str) -> Result<Self, Self::Err> {
