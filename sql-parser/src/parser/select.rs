@@ -82,7 +82,9 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
                             self.lexer.next();
                         }
                         Token::Period => {
-                            let last_column = columns.last_mut().ok_or(ParsingError::UnexpectedToken(".".into()))?;
+                            let last_column = columns
+                                .last_mut()
+                                .ok_or(ParsingError::UnexpectedToken(".".into()))?;
 
                             match last_column {
                                 Expresion::Value => unimplemented!(),
@@ -95,16 +97,19 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
                                             match col_name {
                                                 Token::Identifier(identifier) => {
                                                     *value = format!("{value}.{identifier}");
-                                                },
-                                                _ => Err(ParsingError::UnexpectedToken(format!("Expected identifier, got: {}", col_name)))?,
+                                                }
+                                                _ => Err(ParsingError::UnexpectedToken(format!(
+                                                    "Expected identifier, got: {}",
+                                                    col_name
+                                                )))?,
                                             }
-                                        },
+                                        }
                                         _ => Err(ParsingError::UnexpectedToken(".".into()))?,
                                     }
-                                },
+                                }
                             };
                             self.lexer.next();
-                        },
+                        }
                         Token::Comma => {
                             self.lexer.next();
                             expected_next = true;
