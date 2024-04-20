@@ -41,11 +41,10 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
         }))
     }
 
-    #[allow(clippy::let_and_return)]
     fn parse_distinct(&mut self) -> Result<bool, ParsingError> {
         let current_token = self.get_current_token()?;
 
-        let result = match current_token {
+        match current_token {
             Token::Identifier(identifier)
                 if identifier.to_lowercase() == Keyword::Distinct.to_string() =>
             {
@@ -53,16 +52,12 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
                 Ok(true)
             }
             _ => Ok(false),
-        };
-
-        // dbg!(&result);
-        result
+        }
     }
 
-    #[allow(clippy::let_and_return)]
     fn parse_columns(&mut self) -> Result<Vec<Expresion>, ParsingError> {
         let current_token = self.get_current_token()?;
-        let result = match current_token {
+        match current_token {
             Token::Asterisk => {
                 self.lexer.next();
                 Ok(vec![Expresion::Literal(Literal::String("*".into()))])
@@ -100,10 +95,7 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
                     Ok(columns)
                 }
             }
-        };
-
-        // dbg!(&result);
-        result
+        }
     }
 
     fn parse_from(&mut self) -> Result<String, ParsingError> {
