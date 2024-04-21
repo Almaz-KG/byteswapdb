@@ -1,4 +1,4 @@
-use crate::ast::{Expression, ColumnLiteral};
+use crate::ast::{ColumnLiteral, Expression};
 
 #[derive(Debug, PartialEq)]
 pub struct Select {
@@ -43,7 +43,6 @@ pub struct Update {
     pub set_clause: Vec<(String, Expression)>,
     pub where_clause: Option<Expression>,
 }
-
 
 #[derive(Debug, PartialEq)]
 pub enum Ordering {

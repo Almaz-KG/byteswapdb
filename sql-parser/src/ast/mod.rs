@@ -1,8 +1,8 @@
 mod entities;
 mod expression;
 
-pub use entities::{CreateTable, Delete, DropTable, Insert, Select, Update, Ordering};
-pub use expression::{Expression, Literal, ColumnLiteral};
+pub use entities::{CreateTable, Delete, DropTable, Insert, Ordering, Select, Update};
+pub use expression::{ColumnLiteral, Expression, Literal};
 
 #[derive(Debug, PartialEq)]
 pub enum Ast {
