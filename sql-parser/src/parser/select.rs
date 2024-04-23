@@ -41,12 +41,9 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
     }
 
     fn parse_distinct(&mut self) -> Result<bool, ParsingError> {
-        let current_token = self.get_current_token()?;
-
+        let current_token = self.get_current_token_as_keyword()?;
         match current_token {
-            Token::Identifier(identifier)
-                if identifier.to_lowercase() == Keyword::Distinct.to_string() =>
-            {
+            Some(Keyword::Distinct) => {
                 self.lexer.next();
                 Ok(true)
             }
@@ -59,38 +56,31 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
         match current_token {
             Token::Asterisk => {
                 self.lexer.next();
-                if let Token::Identifier(identifier) = self.get_current_token()? {
-                    let keyword_option = Keyword::from_str(&identifier.to_lowercase());
-                    match keyword_option {
-                        Ok(Keyword::As) => {
+                match self.get_current_token_as_keyword()? {
+                    Some(Keyword::As) => {
+                        self.lexer.next();
+                        let alias_token = self.get_current_token()?;
+                        
+                        if let Token::Identifier(alias) = alias_token {
                             self.lexer.next();
-                            let alias_token = self.get_current_token()?;
-                            
-                            if let Token::Identifier(alias) = alias_token {
-                                self.lexer.next();
-                                Ok(vec![ColumnLiteral {
-                                    expression: Expression::Literal(Literal::String("*".into())),
-                                    alias: Some(alias),
-                                }])
-                            } else {
-                                Ok(vec![ColumnLiteral::from_expression(Expression::Literal(
-                                    Literal::String("*".into()),
-                                ))])
-                            }
-                        }
-                        Ok(_) => {
+                            Ok(vec![ColumnLiteral {
+                                expression: Expression::Literal(Literal::String("*".into())),
+                                alias: Some(alias),
+                            }])
+                        } else {
                             Ok(vec![ColumnLiteral::from_expression(Expression::Literal(
                                 Literal::String("*".into()),
                             ))])
                         }
-                        Err(_) => Ok(vec![ColumnLiteral::from_expression(Expression::Literal(
+                    },
+                    Some(_) => {
+                        Ok(vec![ColumnLiteral::from_expression(Expression::Literal(
                             Literal::String("*".into()),
-                        ))]),
-                    }
-                } else {
-                    Ok(vec![ColumnLiteral::from_expression(Expression::Literal(
+                        ))])
+                    },
+                    None => Ok(vec![ColumnLiteral::from_expression(Expression::Literal(
                         Literal::String("*".into()),
-                    ))])
+                    ))]),
                 }
             }
             _ => {
@@ -191,9 +181,7 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
     fn parse_from(&mut self) -> Result<String, ParsingError> {
         let current_token = self.get_current_token();
         match current_token {
-            Ok(Token::Identifier(identifier))
-                if identifier.to_lowercase() == Keyword::From.to_string() =>
-            {
+            Ok(Token::Identifier(identifier)) if Keyword::from_str(&identifier) == Ok(Keyword::From) => {
                 self.lexer.next();
                 let token = self.get_current_token()?;
                 match token {

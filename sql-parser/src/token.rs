@@ -183,7 +183,7 @@ impl Display for Keyword {
 impl FromStr for Keyword {
     type Err = ();
     fn from_str(value: &str) -> Result<Self, Self::Err> {
-        match value {
+        match value.to_lowercase().as_str() {
             "and" => Ok(Keyword::And),
             "as" => Ok(Keyword::As),
             "asc" => Ok(Keyword::Asc),

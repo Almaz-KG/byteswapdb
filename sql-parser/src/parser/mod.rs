@@ -43,9 +43,7 @@ impl<'a> Parser<'a> {
                 Ok(keyword) => Ok(Some(keyword)),
                 Err(_) => Ok(None),
             },
-            _ => Err(ParsingError::UnexpectedToken(
-                "Expected: keyword".to_string(),
-            )),
+            _ => Ok(None),
         }
     }
 
