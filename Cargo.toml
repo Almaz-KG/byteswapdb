@@ -10,6 +10,11 @@ members = [
     "sql-parser",
 ]
 
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
+
 [dependencies]
 clap = { version = "4.5.4", features = ["derive"] }
 sql-parser = { version = "0.1.0", path = "sql-parser" }
