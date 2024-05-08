@@ -7,7 +7,7 @@ authors = ["Almaz Murzabekov <almaz@murzabekov.net>"]
 [workspace]
 members = [
     "common",
-    "sql-parser",
+    "sql",
 ]
 
 [profile.release]
@@ -17,4 +17,4 @@ codegen-units = 1
 
 [dependencies]
 clap = { version = "4.5.4", features = ["derive"] }
-sql-parser = { version = "0.1.0", path = "sql-parser" }
+sql = { version = "0.1.0", path = "sql" }

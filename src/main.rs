@@ -3,8 +3,8 @@ mod args;
 
 use crate::args::{Cli, Commands};
 use clap::Parser;
-use sql_parser::{Lexer, Token};
-use std::io::{Result, Write};
+use sql::{Lexer, Token};
+use std::{io, io::{Result, Write}};
 
 fn parse_sql_query(query: &str) {
     let vec: Vec<Token> = Lexer::new(query).map(|option| option.unwrap()).collect();
@@ -14,9 +14,9 @@ fn parse_sql_query(query: &str) {
 fn start_repl() {
     fn get_command() -> Result<String> {
         print!("[bsdb-cli]> ");
-        std::io::stdout().flush()?;
+        io::stdout().flush()?;
         let mut command = String::new();
-        std::io::stdin().read_line(&mut command)?;
+        io::stdin().read_line(&mut command)?;
         Ok(command.trim().to_string())
     }
 
