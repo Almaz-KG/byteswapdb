@@ -1,20 +1,22 @@
-[package]
+[workspace.package]
+authors = ["Almaz Murzabekov <almaz@murzabekov.net>"]
 name = "byteswapdb"
 version = "0.1.0"
 edition = "2021"
-authors = ["Almaz Murzabekov <almaz@murzabekov.net>"]
+license = "Apache-2.0"
 
 [workspace]
-members = [
-    "common",
-    "sql",
-]
+members = ["cli", "common", "sql"]
 
 [profile.release]
 strip = true
 lto = true
 codegen-units = 1
 
-[dependencies]
+[profile.dev]
+debug = true
+overflow-checks = true
+
+[workspace.dependencies]
 clap = { version = "4.5.4", features = ["derive"] }
 sql = { version = "0.1.0", path = "sql" }
