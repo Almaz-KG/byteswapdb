@@ -4,7 +4,10 @@ mod args;
 use crate::args::{Cli, Commands};
 use clap::Parser;
 use sql::{Lexer, Token};
-use std::{io, io::{Result, Write}};
+use std::{
+    io,
+    io::{Result, Write},
+};
 
 fn parse_sql_query(query: &str) {
     let vec: Vec<Token> = Lexer::new(query).map(|option| option.unwrap()).collect();

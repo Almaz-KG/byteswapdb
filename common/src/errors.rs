@@ -11,7 +11,9 @@ impl Display for ParsingError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ParsingError::UnexpectedToken(token) => write!(f, "Unexpected token: {}", token),
-            ParsingError::UnexpectedKeyword(keyword) => write!(f, "Unexpected keyword: {}", keyword),
+            ParsingError::UnexpectedKeyword(keyword) => {
+                write!(f, "Unexpected keyword: {}", keyword)
+            }
             ParsingError::UnexpectedEOF => write!(f, "Unexpected EOF"),
         }
     }

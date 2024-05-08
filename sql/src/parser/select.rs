@@ -60,7 +60,7 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
                     Some(Keyword::As) => {
                         self.lexer.next();
                         let alias_token = self.get_current_token()?;
-                        
+
                         if let Token::Identifier(alias) = alias_token {
                             self.lexer.next();
                             Ok(vec![ColumnLiteral {
@@ -72,12 +72,10 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
                                 Literal::String("*".into()),
                             ))])
                         }
-                    },
-                    Some(_) => {
-                        Ok(vec![ColumnLiteral::from_expression(Expression::Literal(
-                            Literal::String("*".into()),
-                        ))])
-                    },
+                    }
+                    Some(_) => Ok(vec![ColumnLiteral::from_expression(Expression::Literal(
+                        Literal::String("*".into()),
+                    ))]),
                     None => Ok(vec![ColumnLiteral::from_expression(Expression::Literal(
                         Literal::String("*".into()),
                     ))]),
@@ -99,7 +97,7 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
                                         columns.last_mut().ok_or(ParsingError::UnexpectedToken(
                                             Keyword::As.to_string(),
                                         ))?;
-                                    
+
                                     let alias_token = self.get_current_token()?;
 
                                     if let Token::Identifier(alias) = alias_token {
@@ -181,7 +179,9 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
     fn parse_from(&mut self) -> Result<String, ParsingError> {
         let current_token = self.get_current_token();
         match current_token {
-            Ok(Token::Identifier(identifier)) if Keyword::from_str(&identifier) == Ok(Keyword::From) => {
+            Ok(Token::Identifier(identifier))
+                if Keyword::from_str(&identifier) == Ok(Keyword::From) =>
+            {
                 self.lexer.next();
                 let token = self.get_current_token()?;
                 match token {
