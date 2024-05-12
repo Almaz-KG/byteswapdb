@@ -36,7 +36,8 @@ impl<'a> Lexer<'a> {
         self.consume_whitespaces();
 
         match self.iter.peek() {
-            Some('\'') => self.scan_string(),
+            Some(c) if *c == '"' => self.scan_string('"'),
+            Some(c) if *c == '\''  => self.scan_string('\''),
             Some(c) if c.is_ascii_digit() => Ok(self.scan_number()),
             Some(c) if c.is_alphabetic() => Ok(self.scan_ident()),
             Some(_) => Ok(self.scan_symbol()),
@@ -67,21 +68,21 @@ impl<'a> Lexer<'a> {
         self.next_while(|c| c.is_whitespace());
     }
 
-    fn scan_string(&mut self) -> Result<Option<Token>, ParsingError> {
-        if self.next_if(|c| c == '\'').is_none() {
+    fn scan_string(&mut self, opening: char) -> Result<Option<Token>, ParsingError> {
+        if self.next_if(|c| c == opening).is_none() {
             return Ok(None);
         }
 
         let mut result = String::new();
         loop {
             match self.iter.next() {
-                Some('\'') => {
-                    if let Some(c) = self.next_if(|c| c == '\'') {
+                Some(c) if c == opening => {
+                    if let Some(c) = self.next_if(|c| c == opening) {
                         result.push(c)
                     } else {
                         break;
                     }
-                }
+                },
                 Some(c) => result.push(c),
                 None => {
                     return Err(ParsingError::UnexpectedEOF);
@@ -137,6 +138,7 @@ impl<'a> Lexer<'a> {
             '(' => Some(Token::OpenParen),
             ')' => Some(Token::CloseParen),
             ',' => Some(Token::Comma),
+            ';' => Some(Token::SemiColon),
             _ => None,
         })
     }
@@ -154,11 +156,11 @@ mod tests {
     #[test]
     fn literal_string() {
         assert_scan(
-            r#"A 'literal string with ''single'' and "double" quotes inside 😀'."#,
+            r#"A "literal string with 'single' and ''double'' quotes inside 😀"."#,
             vec![
                 Token::Identifier("A".into()),
                 Token::String(
-                    r#"literal string with 'single' and "double" quotes inside 😀"#.into(),
+                    r#"literal string with 'single' and ''double'' quotes inside 😀"#.into(),
                 ),
                 Token::Period,
             ],
@@ -253,5 +255,27 @@ mod tests {
                 Identifier("DESC".into()),
             ],
         )
+    }
+
+    /// tesing on spider academic dataset (manual only as for now)
+    /// Expected no panic during tokenizing process
+    // #[test]
+    #[ignore]
+    #[allow(dead_code)]
+    fn test_from_spider_dataset() {
+        use std::fs::File;
+        use std::io::{self, BufRead};
+
+        // let filename = "spider/train_gold.sql";
+        let filename = "spider/dev_gold.sql";
+        let file = File::open(filename).expect("TODO");
+
+        for (idx, line) in io::BufReader::new(file).lines().enumerate() {
+            assert!(line.is_ok());
+            let query = line.unwrap();
+            let lexer = Lexer::new(&query);
+            let tokens: Vec<Token> = lexer.map(|option| option.unwrap()).collect();
+            println!("{idx}: {:?}", tokens);
+        }
     }
 }

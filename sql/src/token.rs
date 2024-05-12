@@ -36,6 +36,8 @@ pub enum Token {
     CloseParen,
     /// An expression separator ,
     Comma,
+    /// A semi-colon ;
+    SemiColon,
 }
 
 impl Display for Token {
@@ -57,6 +59,7 @@ impl Display for Token {
             Token::OpenParen => f.write_str("("),
             Token::CloseParen => f.write_str(")"),
             Token::Comma => f.write_str(","),
+            Token::SemiColon => f.write_str(";"),
             _ => unreachable!(),
         }
     }
