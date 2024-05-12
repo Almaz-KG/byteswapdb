@@ -5,22 +5,22 @@ Mostly, derived from SQLite Database System Design and Implementation Book
 ### Data definition language, DDL:
 - Creation of table, index, view;
 - Deletion of table, index, view;
-- ALTER TABLE (rename table and add column);
-- UNIQUE, NOT NULL constraints;
+- Alter table (rename table and add column);
+- Unique, Not null constraints;
 - Foreign key constraint;
 - Autoincrement
 
 ### Data manipulation language, DML:
-- INSERT, DELETE, UPDATE, and SELECT;
+- Insert, Delete, Update, and Select;
 - Subqueries including correlated subqueries;
-- group by, order by, offset-limit;
-- INNER JOIN, LEFT OUTER JOIN, NATURAL JOIN;
-- UNION, UNION ALL, INTERSECT, EXCEPT;
+- Group by, Order by, Offset-limit;
+- Inner join, Left outer join, Right outer join, Natural join;
+- Union, Union all, Except;
 
 ### Transactional commands:
-- BEGIN;
-- COMMIT;
-- ROLLBACK;
+- Begin;
+- Commit;
+- Rollback;
 
 ### ByteSwapDB commands:
 - reindex;
