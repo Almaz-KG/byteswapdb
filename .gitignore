@@ -20,3 +20,5 @@ Cargo.lock
 
 **/sqlsmith/
 **/spider/
+
+.vscode/
