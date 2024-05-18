@@ -63,4 +63,28 @@ impl<'a> Parser<'a> {
             _ => Err(ParsingError::UnexpectedEOF),
         }
     }
+
+    fn has_next_token(&mut self) -> bool {
+        self.lexer.peek().is_some()
+    }
+
+    fn eat_token(&mut self, token: Token) -> Result<bool, ParsingError> {
+        let current_token = self.get_current_token()?;
+        if current_token == token {
+            self.lexer.next();
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    fn eat_keyword(&mut self, keyword: Keyword) -> Result<bool, ParsingError> {
+        if let Some(current_keyword) = self.get_current_token_as_keyword()? {
+            if keyword == current_keyword {
+                self.lexer.next();
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
 }

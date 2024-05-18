@@ -52,128 +52,266 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
     }
 
     fn parse_columns(&mut self) -> Result<Vec<ColumnLiteral>, ParsingError> {
-        let current_token = self.get_current_token()?;
-        match current_token {
-            Token::Asterisk => {
-                self.lexer.next();
-                match self.get_current_token_as_keyword()? {
-                    Some(Keyword::As) => {
-                        self.lexer.next();
-                        let alias_token = self.get_current_token()?;
+        type ExpectedNextElement = bool;
+        type ParsedColumn = (Option<ColumnLiteral>, ExpectedNextElement);
 
-                        if let Token::Identifier(alias) = alias_token {
-                            self.lexer.next();
-                            Ok(vec![ColumnLiteral {
-                                expression: Expression::Literal(Literal::String("*".into())),
-                                alias: Some(alias),
-                            }])
-                        } else {
-                            Ok(vec![ColumnLiteral::from_expression(Expression::Literal(
-                                Literal::String("*".into()),
-                            ))])
-                        }
-                    }
-                    Some(_) => Ok(vec![ColumnLiteral::from_expression(Expression::Literal(
-                        Literal::String("*".into()),
-                    ))]),
-                    None => Ok(vec![ColumnLiteral::from_expression(Expression::Literal(
-                        Literal::String("*".into()),
-                    ))]),
-                }
+        fn parse_column(parser: &mut Parser) -> Result<ParsedColumn, ParsingError> {
+            if !parser.has_next_token() {
+                return Ok((None, false));
             }
-            _ => {
-                let mut columns = vec![];
-                let mut expected_next = false;
+            let current_token = parser.get_current_token()?;
+            dbg!(&current_token);
 
-                while let Ok(token) = self.get_current_token() {
-                    expected_next = false;
+            match current_token {
+                Token::Identifier(from)
+                    if Keyword::from_str(&from.to_lowercase()) == Ok(Keyword::From) =>
+                {
+                    Ok((None, false)) // End of the expressions
+                }
+                // Case: select *
+                Token::Asterisk => {
+                    parser.lexer.next();
+                    Ok((Some(ColumnLiteral::from_literal("*".into())), false))
+                }
+                // Case: select expr
+                Token::Identifier(name) => {
+                    parser.lexer.next();
+
+                    let token = parser.get_current_token()?;
                     match token {
-                        Token::Identifier(identifier) => {
-                            let keyword_option = Keyword::from_str(&identifier.to_lowercase());
-                            match keyword_option {
-                                Ok(Keyword::As) => {
-                                    self.lexer.next();
-                                    let last_column: &mut ColumnLiteral =
-                                        columns.last_mut().ok_or(ParsingError::UnexpectedToken(
-                                            Keyword::As.to_string(),
-                                        ))?;
+                        // Case: select table_name.%SOMETHING%
+                        Token::Period => {
+                            parser.lexer.next();
+                            let mut names = name.clone();
 
-                                    let alias_token = self.get_current_token()?;
-
-                                    if let Token::Identifier(alias) = alias_token {
-                                        last_column.alias = Some(alias);
-                                        self.lexer.next();
-                                        continue;
-                                    } else {
-                                        return Err(ParsingError::UnexpectedToken(format!(
-                                            "Expected alias, got: {}",
-                                            alias_token
-                                        )));
+                            loop {
+                                let n_token = parser.get_current_token()?;
+                                match n_token {
+                                    // Case: select table_name.*
+                                    Token::Asterisk => {
+                                        names = format!("{names}.*");
+                                        parser.lexer.next();
+                                        break;
                                     }
+                                    // Case: select table_name.column_name
+                                    Token::Identifier(column_name)
+                                    | Token::String(column_name)
+                                    | Token::Number(column_name) => {
+                                        names = format!("{names}.{column_name}");
+                                        parser.lexer.next();
+                                    }
+                                    _ => break,
                                 }
-                                Ok(_) => {
+
+                                let period_eaten = parser.eat_token(Token::Period)?;
+                                if !period_eaten {
                                     break;
                                 }
-                                Err(_) => {
-                                    // ignore as current token is not a keyword
+                            }
+                            let as_keyword_eaten = parser.eat_keyword(Keyword::As)?;
+                            let mut alias = None;
+                            if as_keyword_eaten {
+                                if let Token::Identifier(alias_name) = parser.get_current_token()? {
+                                    alias = Some(alias_name);
+                                    parser.lexer.next();
                                 }
                             }
-                            columns.push(ColumnLiteral::from_expression(Expression::Literal(
-                                Literal::String(identifier),
-                            )));
-                            self.lexer.next();
-                        }
-                        Token::Number(num) => {
-                            columns.push(ColumnLiteral::from_expression(Expression::Literal(
-                                Literal::String(num),
-                            )));
-                            self.lexer.next();
-                        }
-                        Token::Period => {
-                            let last_column = columns
-                                .last_mut()
-                                .ok_or(ParsingError::UnexpectedToken(".".into()))?;
 
-                            match &mut last_column.expression {
-                                Expression::Value => unimplemented!(),
-                                Expression::Operation => unimplemented!(),
-                                Expression::Literal(literal) => {
-                                    match literal {
-                                        Literal::String(ref mut value) => {
-                                            self.lexer.next(); // skipping current . period-token
-                                            let col_name = self.get_current_token()?;
-                                            match col_name {
-                                                Token::Identifier(identifier) => {
-                                                    *value = format!("{value}.{identifier}");
-                                                }
-                                                _ => Err(ParsingError::UnexpectedToken(format!(
-                                                    "Expected identifier, got: {}",
-                                                    col_name
-                                                )))?,
-                                            }
+                            let comma_eaten = parser.eat_token(Token::Comma)?;
+                            let column = ColumnLiteral {
+                                expression: Expression::Literal(Literal::String(names)),
+                                alias,
+                            };
+                            Ok((Some(column), comma_eaten))
+                        }
+                        // Case: select table_name,
+                        Token::Comma => {
+                            parser.lexer.next();
+                            Ok((
+                                Some(ColumnLiteral::from_literal(Literal::String(name))),
+                                true,
+                            ))
+                        }
+                        // Case: select name as something
+                        Token::Identifier(possible_keyword) => {
+                            match Keyword::from_str(&possible_keyword.to_lowercase()) {
+                                Ok(Keyword::As) => {
+                                    parser.lexer.next();
+                                    match parser.get_current_token()? {
+                                        Token::Identifier(alias) => {
+                                            parser.lexer.next();
+                                            let comma_eaten = parser.eat_token(Token::Comma)?;
+                                            Ok((
+                                                Some(ColumnLiteral {
+                                                    expression: Expression::Literal(
+                                                        Literal::String(name),
+                                                    ),
+                                                    alias: Some(alias),
+                                                }),
+                                                comma_eaten,
+                                            ))
                                         }
-                                        _ => Err(ParsingError::UnexpectedToken(".".into()))?,
+                                        Token::String(alias) => {
+                                            parser.lexer.next();
+                                            let comma_eaten = parser.eat_token(Token::Comma)?;
+                                            Ok((
+                                                Some(ColumnLiteral {
+                                                    expression: Expression::Literal(
+                                                        Literal::String(name),
+                                                    ),
+                                                    alias: Some(alias),
+                                                }),
+                                                comma_eaten,
+                                            ))
+                                        }
+                                        _ => todo!(),
                                     }
                                 }
-                            };
-                            self.lexer.next();
+                                Ok(Keyword::From) => Ok((
+                                    Some(ColumnLiteral::from_literal(Literal::String(name))),
+                                    false,
+                                )),
+                                _ => todo!(),
+                            }
                         }
-                        Token::Comma => {
-                            self.lexer.next();
-                            expected_next = true;
-                        }
-                        _ => {
-                            break;
-                        }
+                        _ => Err(ParsingError::UnexpectedToken(format!("{token}"))),
                     }
                 }
-                if expected_next {
-                    Err(ParsingError::UnexpectedEOF)
-                } else {
-                    Ok(columns)
+
+                // Case: select 1
+                Token::Number(number) => {
+                    let value: f64 = number.parse().map_err(|_| {
+                        ParsingError::InvalidDataType(format!("Unable parse {number} to f64"))
+                    })?;
+                    parser.lexer.next();
+
+                    if !parser.has_next_token() {
+                        return Ok((
+                            Some(ColumnLiteral::from_literal(Literal::Number(value))),
+                            false,
+                        ));
+                    }
+
+                    let token = parser.get_current_token()?;
+                    match token {
+                        // Case: select 1,
+                        Token::Comma => {
+                            parser.lexer.next();
+                            Ok((
+                                Some(ColumnLiteral::from_literal(Literal::Number(value))),
+                                true,
+                            ))
+                        }
+                        // Case: select 1 as something
+                        Token::Identifier(possible_keyword) => {
+                            match Keyword::from_str(&possible_keyword.to_lowercase()) {
+                                Ok(Keyword::As) => {
+                                    parser.lexer.next();
+                                    match parser.get_current_token()? {
+                                        Token::Identifier(alias) => {
+                                            parser.lexer.next();
+                                            let comma_eaten = parser.eat_token(Token::Comma)?;
+                                            Ok((
+                                                Some(ColumnLiteral {
+                                                    expression: Expression::Literal(
+                                                        Literal::Number(value),
+                                                    ),
+                                                    alias: Some(alias),
+                                                }),
+                                                comma_eaten,
+                                            ))
+                                        }
+                                        _ => todo!(),
+                                    }
+                                }
+                                Ok(Keyword::From) => Ok((
+                                    Some(ColumnLiteral::from_literal(Literal::Number(value))),
+                                    false,
+                                )),
+                                _ => todo!(),
+                            }
+                        }
+                        _ => Err(ParsingError::UnexpectedToken(format!("{token}"))),
+                    }
                 }
+
+                // Case: select 'name'
+                Token::String(string) => {
+                    parser.lexer.next();
+
+                    if !parser.has_next_token() {
+                        return Ok((
+                            Some(ColumnLiteral::from_literal(Literal::String(string))),
+                            false,
+                        ));
+                    }
+
+                    let token = parser.get_current_token()?;
+                    match token {
+                        // Case: select 'name',
+                        Token::Comma => {
+                            parser.lexer.next();
+                            Ok((
+                                Some(ColumnLiteral::from_literal(Literal::String(string))),
+                                true,
+                            ))
+                        }
+                        // Case: select 'name' as something
+                        Token::Identifier(possible_keyword) => {
+                            match Keyword::from_str(&possible_keyword.to_lowercase()) {
+                                Ok(Keyword::As) => {
+                                    parser.lexer.next();
+                                    match parser.get_current_token()? {
+                                        Token::Identifier(alias) => {
+                                            parser.lexer.next();
+                                            let comma_eaten = parser.eat_token(Token::Comma)?;
+                                            Ok((
+                                                Some(ColumnLiteral {
+                                                    expression: Expression::Literal(
+                                                        Literal::String(string),
+                                                    ),
+                                                    alias: Some(alias),
+                                                }),
+                                                comma_eaten,
+                                            ))
+                                        }
+                                        _ => todo!(),
+                                    }
+                                }
+                                Ok(Keyword::From) => Ok((
+                                    Some(ColumnLiteral::from_literal(Literal::String(string))),
+                                    false,
+                                )),
+                                _ => todo!(),
+                            }
+                        }
+                        _ => Err(ParsingError::UnexpectedToken(format!("{token}"))),
+                    }
+                }
+                _ => todo!(),
             }
         }
+
+        let mut columns = vec![];
+        let mut next_column_wanted = true;
+        loop {
+            let (column_optional, next_exression_expected) = parse_column(self)?;
+            if column_optional.is_none() && next_column_wanted {
+                return Err(ParsingError::UnexpectedEOF);
+            }
+
+            next_column_wanted = next_exression_expected;
+
+            if let Some(column) = column_optional {
+                columns.push(column);
+            } else {
+                break;
+            }
+        }
+        if next_column_wanted {
+            return Err(ParsingError::UnexpectedEOF);
+        }
+        Ok(columns)
     }
 
     fn parse_from(&mut self) -> Result<String, ParsingError> {
@@ -266,13 +404,18 @@ mod tests {
     #[test]
     fn test_select_constant() {
         let select_stmt = parse_query("SELECT 1").expect("Expected valid select statement");
+        assert_eq!(select_stmt.columns.len(), 1);
         assert_eq!(
-            select_stmt.columns,
-            vec![ColumnLiteral::from_expression(Expression::Literal(
-                Literal::String("1".to_string())
-            ))]
+            select_stmt.columns[0],
+            ColumnLiteral::from_literal(Literal::Number(1.0))
         );
-        assert_eq!(select_stmt.from, "".to_string());
+
+        let select_stmt = parse_query("SELECT 'abs'").expect("Expected valid select statement");
+        assert_eq!(select_stmt.columns.len(), 1);
+        assert_eq!(
+            select_stmt.columns[0],
+            ColumnLiteral::from_literal(Literal::String("abs".into()))
+        );
     }
 
     #[test]
@@ -336,6 +479,18 @@ mod tests {
 
     #[test]
     fn test_select_qualified_columns_query() {
+        let select_stmt =
+            parse_query("SELECT users.* FROM users").expect("Expected valid select statement");
+        assert_eq!(
+            select_stmt.columns,
+            vec![ColumnLiteral::from_expression(Expression::Literal(
+                Literal::String("users.*".to_string())
+            )),]
+        );
+    }
+
+    #[test]
+    fn test_select_qualified_multiple_columns_query() {
         let select_stmt = parse_query("SELECT users.col1, users.col2 FROM users")
             .expect("Expected valid select statement");
         assert_eq!(
@@ -411,19 +566,6 @@ mod tests {
     }
 
     #[test]
-    fn test_select_all_columns_with_alias() {
-        let select_stmt =
-            parse_query("SELECT * AS alias FROM users").expect("Expected valid select statement");
-        assert_eq!(
-            select_stmt.columns,
-            vec![ColumnLiteral {
-                expression: Expression::Literal(Literal::String("*".to_string())),
-                alias: Some("alias".to_string()),
-            }]
-        );
-    }
-
-    #[test]
     fn test_select_columns_with_aliases() {
         let select_stmt = parse_query("SELECT 1 AS one, 2 AS two FROM users")
             .expect("Expected valid select statement");
@@ -431,11 +573,11 @@ mod tests {
             select_stmt.columns,
             vec![
                 ColumnLiteral {
-                    expression: Expression::Literal(Literal::String("1".to_string())),
+                    expression: Expression::Literal(Literal::Number(1.0)),
                     alias: Some("one".to_string()),
                 },
                 ColumnLiteral {
-                    expression: Expression::Literal(Literal::String("2".to_string())),
+                    expression: Expression::Literal(Literal::Number(2.0)),
                     alias: Some("two".to_string()),
                 }
             ]
@@ -444,42 +586,38 @@ mod tests {
 
     #[test]
     fn test_select_nested_column_with_alias() {
-        let select_stmt = parse_query("SELECT col1.value1.body AS body FROM users")
+        let select_stmt = parse_query("SELECT col1.value1.body AS column_name FROM users")
             .expect("Expected valid select statement");
         assert_eq!(
             select_stmt.columns,
             vec![ColumnLiteral {
                 expression: Expression::Literal(Literal::String("col1.value1.body".to_string())),
-                alias: Some("body".to_string()),
+                alias: Some("column_name".to_string()),
             }]
         );
     }
 
     #[test]
     fn test_select_columns_with_mixed_aliases() {
-        let select_stmt = parse_query(
-            // r#"SELECT col1, col2 as name_2, 3 AS name_3, id AS "some id" FROM users"#,
-            r#"SELECT col1, col2 as name_2, 3 AS name_3 FROM users"#,
-        )
-        .expect("Expected valid select statement");
+        let select_stmt =
+            parse_query(r#"SELECT col1, col2 as name_2, 3 AS name_3, id AS 'some id' FROM users"#)
+                .expect("Expected valid select statement");
         assert_eq!(
             select_stmt.columns,
             vec![
-                ColumnLiteral::from_expression(Expression::Literal(Literal::String(
-                    "col1".to_string()
-                ))),
+                ColumnLiteral::from_literal(Literal::String("col1".into())),
                 ColumnLiteral {
                     expression: Expression::Literal(Literal::String("col2".to_string())),
                     alias: Some("name_2".to_string()),
                 },
                 ColumnLiteral {
-                    expression: Expression::Literal(Literal::String("3".to_string())),
+                    expression: Expression::Literal(Literal::Number(3.0)),
                     alias: Some("name_3".to_string()),
                 },
-                // ColumnLiteral {
-                //     expression: Expression::Literal(Literal::String("id".to_string())),
-                //     alias: Some("some id".to_string()),
-                // },
+                ColumnLiteral {
+                    expression: Expression::Literal(Literal::String("id".to_string())),
+                    alias: Some("some id".to_string()),
+                },
             ]
         );
     }

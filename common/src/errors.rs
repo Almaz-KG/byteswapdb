@@ -5,6 +5,7 @@ pub enum ParsingError {
     UnexpectedToken(String),
     UnexpectedKeyword(String),
     UnexpectedEOF,
+    InvalidDataType(String),
 }
 
 impl Display for ParsingError {
@@ -15,6 +16,7 @@ impl Display for ParsingError {
                 write!(f, "Unexpected keyword: {}", keyword)
             }
             ParsingError::UnexpectedEOF => write!(f, "Unexpected EOF"),
+            ParsingError::InvalidDataType(message) => write!(f, "Invalid Data Type: {message}"),
         }
     }
 }

@@ -37,7 +37,7 @@ impl<'a> Lexer<'a> {
 
         match self.iter.peek() {
             Some(c) if *c == '"' => self.scan_string('"'),
-            Some(c) if *c == '\''  => self.scan_string('\''),
+            Some(c) if *c == '\'' => self.scan_string('\''),
             Some(c) if c.is_ascii_digit() => Ok(self.scan_number()),
             Some(c) if c.is_alphabetic() => Ok(self.scan_ident()),
             Some(_) => Ok(self.scan_symbol()),
@@ -82,7 +82,7 @@ impl<'a> Lexer<'a> {
                     } else {
                         break;
                     }
-                },
+                }
                 Some(c) => result.push(c),
                 None => {
                     return Err(ParsingError::UnexpectedEOF);

@@ -19,6 +19,12 @@ impl From<String> for Literal {
     }
 }
 
+impl From<&str> for Literal {
+    fn from(value: &str) -> Literal {
+        Literal::String(value.into())
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct ColumnLiteral {
     pub expression: Expression,
@@ -29,6 +35,13 @@ impl ColumnLiteral {
     pub fn from_expression(expression: Expression) -> ColumnLiteral {
         ColumnLiteral {
             expression,
+            alias: None,
+        }
+    }
+
+    pub fn from_literal(literal: Literal) -> ColumnLiteral {
+        ColumnLiteral {
+            expression: Expression::Literal(literal),
             alias: None,
         }
     }
