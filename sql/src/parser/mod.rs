@@ -7,6 +7,8 @@ use crate::token::{Keyword, Token};
 use common::errors::ParsingError;
 use std::iter::Peekable;
 use std::str::FromStr;
+use std::convert::TryFrom;
+use std::convert::TryInto;
 
 pub struct Parser<'a> {
     lexer: Peekable<Lexer<'a>>,
@@ -20,20 +22,26 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse(&mut self) -> Result<Ast, ParsingError> {
-        match self.get_current_token_as_keyword()? {
-            Some(keyword) => match keyword {
-                Keyword::Select => self.parse_select(),
-                Keyword::Create => unimplemented!(),
-                Keyword::Drop => unimplemented!(),
-                Keyword::Delete => unimplemented!(),
-                Keyword::Insert => unimplemented!(),
-                Keyword::Update => unimplemented!(),
-                Keyword::Explain => unimplemented!(),
-                _ => Err(ParsingError::UnexpectedToken(keyword.to_string())),
-            },
-            None => Err(ParsingError::UnexpectedToken(
-                "Expected: keyword".to_string(),
-            )),
+        let keyword: Keyword = self.current()?.expect("Expected a keyword");
+
+        match keyword {
+            Keyword::Select => self.parse_select(),
+            Keyword::Create => unimplemented!(),
+            Keyword::Drop => unimplemented!(),
+            Keyword::Delete => unimplemented!(),
+            Keyword::Insert => unimplemented!(),
+            Keyword::Update => unimplemented!(),
+            Keyword::Explain => unimplemented!(),
+            _ => Err(ParsingError::UnexpectedToken(keyword.to_string())),
+        }
+    }
+
+    fn current<T: TryFrom<Token>>(&mut self) -> Result<Option<T>, ParsingError> {
+        let token = self.get_current_token()?;
+        let result: Result<T, T::Error> = token.try_into();
+        match result {
+            Ok(t) => Ok(Some(t)),
+            Err(_) => Err(ParsingError::UnexpectedEOF)
         }
     }
 

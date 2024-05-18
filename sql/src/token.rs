@@ -241,3 +241,15 @@ impl FromStr for Keyword {
         }
     }
 }
+
+impl TryFrom<Token> for Keyword {
+    type Error = ();
+
+    fn try_from(token: Token) -> Result<Self, Self::Error> {
+        match token {
+            Token::Identifier(ident) => Keyword::from_str(&ident.to_lowercase()),
+            Token::String(string) => Keyword::from_str(&string.to_lowercase()),
+            _ => Err(()),
+        }
+    }
+}
