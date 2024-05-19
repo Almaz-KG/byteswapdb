@@ -44,16 +44,6 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn assert_current_token_is(&mut self, keyword: Keyword) -> Result<(), ParsingError> {
-        match self.get_current_token()? {
-            Token::Identifier(ident) if ident.to_lowercase() == keyword.to_string() => Ok(()),
-            _ => Err(ParsingError::UnexpectedToken(format!(
-                "Expected: {}",
-                keyword
-            ))),
-        }
-    }
-
     fn get_current_token(&mut self) -> Result<Token, ParsingError> {
         match self.lexer.peek() {
             Some(Ok(token)) => Ok(token.clone()),

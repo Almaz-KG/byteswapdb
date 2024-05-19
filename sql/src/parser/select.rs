@@ -26,8 +26,9 @@ pub trait SelectQueryParser<'a> {
 
 impl<'a> SelectQueryParser<'a> for Parser<'a> {
     fn parse_select(&mut self) -> Result<Ast, ParsingError> {
-        self.assert_current_token_is(Keyword::Select)?;
-        self.lexer.next();
+        let select_keyword_eaten = self.eat_keyword(Keyword::Select)?;
+        assert!(select_keyword_eaten);
+        
         Ok(Ast::Select(Select {
             distinct: self.parse_distinct()?,
             columns: self.parse_columns()?,
