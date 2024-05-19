@@ -41,7 +41,7 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
     }
 
     fn parse_distinct(&mut self) -> Result<bool, ParsingError> {
-        let current_token = self.get_current_token_as_keyword()?;
+        let current_token = self.current()?;
         match current_token {
             Some(Keyword::Distinct) => {
                 self.lexer.next();

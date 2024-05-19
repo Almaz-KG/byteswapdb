@@ -6,7 +6,6 @@ use crate::parser::select::SelectQueryParser;
 use crate::token::{Keyword, Token};
 use common::errors::ParsingError;
 use std::iter::Peekable;
-use std::str::FromStr;
 use std::convert::TryFrom;
 use std::convert::TryInto;
 
@@ -41,17 +40,7 @@ impl<'a> Parser<'a> {
         let result: Result<T, T::Error> = token.try_into();
         match result {
             Ok(t) => Ok(Some(t)),
-            Err(_) => Err(ParsingError::UnexpectedEOF)
-        }
-    }
-
-    fn get_current_token_as_keyword(&mut self) -> Result<Option<Keyword>, ParsingError> {
-        match self.get_current_token()? {
-            Token::Identifier(ident) => match Keyword::from_str(&ident.to_lowercase()) {
-                Ok(keyword) => Ok(Some(keyword)),
-                Err(_) => Ok(None),
-            },
-            _ => Ok(None),
+            Err(_) => Ok(None)
         }
     }
 
@@ -87,7 +76,7 @@ impl<'a> Parser<'a> {
     }
 
     fn eat_keyword(&mut self, keyword: Keyword) -> Result<bool, ParsingError> {
-        if let Some(current_keyword) = self.get_current_token_as_keyword()? {
+        if let Some(current_keyword) = self.current()? {
             if keyword == current_keyword {
                 self.lexer.next();
                 return Ok(true);
