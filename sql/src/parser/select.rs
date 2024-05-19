@@ -60,7 +60,7 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
             if !parser.has_next_token() {
                 return Ok((None, false));
             }
-            let current_token = parser.get_current_token()?;
+            let current_token = parser.current_token()?;
             dbg!(&current_token);
 
             match current_token {
@@ -78,7 +78,7 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
                 Token::Identifier(name) => {
                     parser.lexer.next();
 
-                    let token = parser.get_current_token()?;
+                    let token = parser.current_token()?;
                     match token {
                         // Case: select table_name.%SOMETHING%
                         Token::Period => {
@@ -86,7 +86,7 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
                             let mut names = name.clone();
 
                             loop {
-                                let n_token = parser.get_current_token()?;
+                                let n_token = parser.current_token()?;
                                 match n_token {
                                     // Case: select table_name.*
                                     Token::Asterisk => {
@@ -112,7 +112,7 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
                             let as_keyword_eaten = parser.eat_keyword(Keyword::As)?;
                             let mut alias = None;
                             if as_keyword_eaten {
-                                if let Token::Identifier(alias_name) = parser.get_current_token()? {
+                                if let Token::Identifier(alias_name) = parser.current_token()? {
                                     alias = Some(alias_name);
                                     parser.lexer.next();
                                 }
@@ -138,7 +138,7 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
                             match Keyword::from_str(&possible_keyword.to_lowercase()) {
                                 Ok(Keyword::As) => {
                                     parser.lexer.next();
-                                    match parser.get_current_token()? {
+                                    match parser.current_token()? {
                                         Token::Identifier(alias) => {
                                             parser.lexer.next();
                                             let comma_eaten = parser.eat_token(Token::Comma)?;
@@ -193,7 +193,7 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
                         ));
                     }
 
-                    let token = parser.get_current_token()?;
+                    let token = parser.current_token()?;
                     match token {
                         // Case: select 1,
                         Token::Comma => {
@@ -208,7 +208,7 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
                             match Keyword::from_str(&possible_keyword.to_lowercase()) {
                                 Ok(Keyword::As) => {
                                     parser.lexer.next();
-                                    match parser.get_current_token()? {
+                                    match parser.current_token()? {
                                         Token::Identifier(alias) => {
                                             parser.lexer.next();
                                             let comma_eaten = parser.eat_token(Token::Comma)?;
@@ -247,7 +247,7 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
                         ));
                     }
 
-                    let token = parser.get_current_token()?;
+                    let token = parser.current_token()?;
                     match token {
                         // Case: select 'name',
                         Token::Comma => {
@@ -262,7 +262,7 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
                             match Keyword::from_str(&possible_keyword.to_lowercase()) {
                                 Ok(Keyword::As) => {
                                     parser.lexer.next();
-                                    match parser.get_current_token()? {
+                                    match parser.current_token()? {
                                         Token::Identifier(alias) => {
                                             parser.lexer.next();
                                             let comma_eaten = parser.eat_token(Token::Comma)?;
@@ -316,13 +316,13 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
     }
 
     fn parse_from(&mut self) -> Result<String, ParsingError> {
-        let current_token = self.get_current_token();
+        let current_token = self.current_token();
         match current_token {
             Ok(Token::Identifier(identifier))
                 if Keyword::from_str(&identifier) == Ok(Keyword::From) =>
             {
                 self.lexer.next();
-                let token = self.get_current_token()?;
+                let token = self.current_token()?;
                 match token {
                     Token::Identifier(table_name) => Ok(table_name),
                     _ => Err(ParsingError::UnexpectedToken(token.to_string())),

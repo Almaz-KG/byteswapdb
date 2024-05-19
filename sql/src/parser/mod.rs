@@ -36,7 +36,7 @@ impl<'a> Parser<'a> {
     }
 
     fn current<T: TryFrom<Token>>(&mut self) -> Result<Option<T>, ParsingError> {
-        let token = self.get_current_token()?;
+        let token = self.current_token()?;
         let result: Result<T, T::Error> = token.try_into();
         match result {
             Ok(t) => Ok(Some(t)),
@@ -44,7 +44,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn get_current_token(&mut self) -> Result<Token, ParsingError> {
+    fn current_token(&mut self) -> Result<Token, ParsingError> {
         match self.lexer.peek() {
             Some(Ok(token)) => Ok(token.clone()),
             _ => Err(ParsingError::UnexpectedEOF),
@@ -56,7 +56,7 @@ impl<'a> Parser<'a> {
     }
 
     fn eat_token(&mut self, token: Token) -> Result<bool, ParsingError> {
-        let current_token = self.get_current_token()?;
+        let current_token = self.current_token()?;
         if current_token == token {
             self.lexer.next();
             Ok(true)
