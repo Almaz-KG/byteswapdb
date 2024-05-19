@@ -5,9 +5,9 @@ use crate::lexer::Lexer;
 use crate::parser::select::SelectQueryParser;
 use crate::token::{Keyword, Token};
 use common::errors::ParsingError;
-use std::iter::Peekable;
 use std::convert::TryFrom;
 use std::convert::TryInto;
+use std::iter::Peekable;
 
 pub struct Parser<'a> {
     lexer1: Peekable<Lexer<'a>>,
@@ -40,7 +40,7 @@ impl<'a> Parser<'a> {
         let result: Result<T, T::Error> = token.try_into();
         match result {
             Ok(t) => Ok(Some(t)),
-            Err(_) => Ok(None)
+            Err(_) => Ok(None),
         }
     }
 
@@ -58,7 +58,7 @@ impl<'a> Parser<'a> {
     fn eat(&mut self) -> Result<(), ParsingError> {
         match self.lexer1.next() {
             Some(_) => Ok(()),
-            None => Err(ParsingError::UnexpectedEOF)
+            None => Err(ParsingError::UnexpectedEOF),
         }
     }
 
