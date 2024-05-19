@@ -10,13 +10,13 @@ use std::convert::TryFrom;
 use std::convert::TryInto;
 
 pub struct Parser<'a> {
-    lexer: Peekable<Lexer<'a>>,
+    lexer1: Peekable<Lexer<'a>>,
 }
 
 impl<'a> Parser<'a> {
     pub fn new(query: &'a str) -> Self {
         Parser {
-            lexer: Lexer::new(query).peekable(),
+            lexer1: Lexer::new(query).peekable(),
         }
     }
 
@@ -45,20 +45,27 @@ impl<'a> Parser<'a> {
     }
 
     fn current_token(&mut self) -> Result<Token, ParsingError> {
-        match self.lexer.peek() {
+        match self.lexer1.peek() {
             Some(Ok(token)) => Ok(token.clone()),
             _ => Err(ParsingError::UnexpectedEOF),
         }
     }
 
     fn has_next_token(&mut self) -> bool {
-        self.lexer.peek().is_some()
+        self.lexer1.peek().is_some()
+    }
+
+    fn eat(&mut self) -> Result<(), ParsingError> {
+        match self.lexer1.next() {
+            Some(_) => Ok(()),
+            None => Err(ParsingError::UnexpectedEOF)
+        }
     }
 
     fn eat_token(&mut self, token: Token) -> Result<bool, ParsingError> {
         let current_token = self.current_token()?;
         if current_token == token {
-            self.lexer.next();
+            self.lexer1.next();
             Ok(true)
         } else {
             Ok(false)
@@ -68,7 +75,7 @@ impl<'a> Parser<'a> {
     fn eat_keyword(&mut self, keyword: Keyword) -> Result<bool, ParsingError> {
         if let Some(current_keyword) = self.current()? {
             if keyword == current_keyword {
-                self.lexer.next();
+                self.lexer1.next();
                 return Ok(true);
             }
         }

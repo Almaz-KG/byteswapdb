@@ -42,10 +42,9 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
     }
 
     fn parse_distinct(&mut self) -> Result<bool, ParsingError> {
-        let current_token = self.current()?;
-        match current_token {
+        match self.current()? {
             Some(Keyword::Distinct) => {
-                self.lexer.next();
+                self.eat_keyword(Keyword::Distinct).expect("TODO: Internal error");
                 Ok(true)
             }
             _ => Ok(false),
@@ -53,8 +52,8 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
     }
 
     fn parse_columns(&mut self) -> Result<Vec<ColumnLiteral>, ParsingError> {
-        type ExpectedNextElement = bool;
-        type ParsedColumn = (Option<ColumnLiteral>, ExpectedNextElement);
+        type NextElementExpectedFlag = bool;
+        type ParsedColumn = (Option<ColumnLiteral>, NextElementExpectedFlag);
 
         fn parse_column(parser: &mut Parser) -> Result<ParsedColumn, ParsingError> {
             if !parser.has_next_token() {
@@ -63,26 +62,26 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
             let current_token = parser.current_token()?;
             dbg!(&current_token);
 
+            // Stop parsing columns when the FROM keyword is current token
+            if current_token.clone().try_into() == Ok(Keyword::From) {
+                return Ok((None, false))
+            }
+
             match current_token {
-                Token::Identifier(from)
-                    if Keyword::from_str(&from.to_lowercase()) == Ok(Keyword::From) =>
-                {
-                    Ok((None, false)) // End of the expressions
-                }
                 // Case: select *
                 Token::Asterisk => {
-                    parser.lexer.next();
+                    parser.eat().expect("TODO: Internal error");
                     Ok((Some(ColumnLiteral::from_literal("*".into())), false))
                 }
                 // Case: select expr
                 Token::Identifier(name) => {
-                    parser.lexer.next();
+                    parser.eat().expect("TODO: Internal error");
 
                     let token = parser.current_token()?;
                     match token {
                         // Case: select table_name.%SOMETHING%
                         Token::Period => {
-                            parser.lexer.next();
+                            parser.eat().expect("TODO: Internal error");
                             let mut names = name.clone();
 
                             loop {
@@ -91,7 +90,7 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
                                     // Case: select table_name.*
                                     Token::Asterisk => {
                                         names = format!("{names}.*");
-                                        parser.lexer.next();
+                                        parser.eat().expect("TODO: Internal error");
                                         break;
                                     }
                                     // Case: select table_name.column_name
@@ -99,7 +98,7 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
                                     | Token::String(column_name)
                                     | Token::Number(column_name) => {
                                         names = format!("{names}.{column_name}");
-                                        parser.lexer.next();
+                                        parser.eat().expect("TODO: Internal error");
                                     }
                                     _ => break,
                                 }
@@ -114,7 +113,7 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
                             if as_keyword_eaten {
                                 if let Token::Identifier(alias_name) = parser.current_token()? {
                                     alias = Some(alias_name);
-                                    parser.lexer.next();
+                                    parser.eat().expect("TODO: Internal error");
                                 }
                             }
 
@@ -127,7 +126,7 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
                         }
                         // Case: select table_name,
                         Token::Comma => {
-                            parser.lexer.next();
+                            parser.eat().expect("TODO: Internal error");
                             Ok((
                                 Some(ColumnLiteral::from_literal(Literal::String(name))),
                                 true,
@@ -137,10 +136,10 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
                         Token::Identifier(possible_keyword) => {
                             match Keyword::from_str(&possible_keyword.to_lowercase()) {
                                 Ok(Keyword::As) => {
-                                    parser.lexer.next();
+                                    parser.eat().expect("TODO: Internal error");
                                     match parser.current_token()? {
                                         Token::Identifier(alias) => {
-                                            parser.lexer.next();
+                                            parser.eat().expect("TODO: Internal error");
                                             let comma_eaten = parser.eat_token(Token::Comma)?;
                                             Ok((
                                                 Some(ColumnLiteral {
@@ -153,7 +152,7 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
                                             ))
                                         }
                                         Token::String(alias) => {
-                                            parser.lexer.next();
+                                            parser.eat().expect("TODO: Internal error");
                                             let comma_eaten = parser.eat_token(Token::Comma)?;
                                             Ok((
                                                 Some(ColumnLiteral {
@@ -184,7 +183,7 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
                     let value: f64 = number.parse().map_err(|_| {
                         ParsingError::InvalidDataType(format!("Unable parse {number} to f64"))
                     })?;
-                    parser.lexer.next();
+                    parser.eat().expect("TODO: Internal error");
 
                     if !parser.has_next_token() {
                         return Ok((
@@ -197,7 +196,7 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
                     match token {
                         // Case: select 1,
                         Token::Comma => {
-                            parser.lexer.next();
+                            parser.eat().expect("TODO: Internal error");
                             Ok((
                                 Some(ColumnLiteral::from_literal(Literal::Number(value))),
                                 true,
@@ -207,10 +206,10 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
                         Token::Identifier(possible_keyword) => {
                             match Keyword::from_str(&possible_keyword.to_lowercase()) {
                                 Ok(Keyword::As) => {
-                                    parser.lexer.next();
+                                    parser.eat().expect("TODO: Internal error");
                                     match parser.current_token()? {
                                         Token::Identifier(alias) => {
-                                            parser.lexer.next();
+                                            parser.eat().expect("TODO: Internal error");
                                             let comma_eaten = parser.eat_token(Token::Comma)?;
                                             Ok((
                                                 Some(ColumnLiteral {
@@ -238,7 +237,7 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
 
                 // Case: select 'name'
                 Token::String(string) => {
-                    parser.lexer.next();
+                    parser.eat().expect("TODO: Internal error");
 
                     if !parser.has_next_token() {
                         return Ok((
@@ -251,7 +250,7 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
                     match token {
                         // Case: select 'name',
                         Token::Comma => {
-                            parser.lexer.next();
+                            parser.eat().expect("TODO: Internal error");
                             Ok((
                                 Some(ColumnLiteral::from_literal(Literal::String(string))),
                                 true,
@@ -261,10 +260,10 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
                         Token::Identifier(possible_keyword) => {
                             match Keyword::from_str(&possible_keyword.to_lowercase()) {
                                 Ok(Keyword::As) => {
-                                    parser.lexer.next();
+                                    parser.eat().expect("TODO: Internal error");
                                     match parser.current_token()? {
                                         Token::Identifier(alias) => {
-                                            parser.lexer.next();
+                                            parser.eat().expect("TODO: Internal error");
                                             let comma_eaten = parser.eat_token(Token::Comma)?;
                                             Ok((
                                                 Some(ColumnLiteral {
@@ -318,13 +317,13 @@ impl<'a> SelectQueryParser<'a> for Parser<'a> {
     fn parse_from(&mut self) -> Result<String, ParsingError> {
         let current_token = self.current_token();
         match current_token {
-            Ok(Token::Identifier(identifier))
-                if Keyword::from_str(&identifier) == Ok(Keyword::From) =>
-            {
-                self.lexer.next();
+            Ok(token) if token.clone().try_into() == Ok(Keyword::From) => { 
+                self.eat().expect("TODO: Internal error");
+
                 let token = self.current_token()?;
                 match token {
                     Token::Identifier(table_name) => Ok(table_name),
+                    Token::String(table_name) => Ok(table_name),
                     _ => Err(ParsingError::UnexpectedToken(token.to_string())),
                 }
             }
