@@ -57,7 +57,7 @@ pub struct SQLiteDatabaseHeader {
     // 0	16	The header string: "SQLite format 3\000"
     header: String,
     // 16	2	The database page size in bytes. Must be a power of two between 512 and 32768 inclusive, or the value 1 representing a page size of 65536.
-    page_size: u16,
+    page_size: u32,
     // 18	1	File format write version. 1 for legacy; 2 for WAL.
     write_file_format: FileFormat,
     // 19	1	File format read version. 1 for legacy; 2 for WAL.
@@ -129,13 +129,13 @@ impl SQLiteDatabaseHeader {
         })
     }
 
-    fn load_page_size(data: &[u8]) -> u16 {
+    fn load_page_size(data: &[u8]) -> u32 {
         let x = u16::from_be_bytes([data[0], data[1]]);
         assert!((x & (x - 1)) == 0);
         if x == 1 {
-            u16::MAX
+            u16::MAX as u32 + 1
         } else {
-            x
+            x as u32
         }
     }
 
