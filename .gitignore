@@ -25,3 +25,9 @@ Cargo.lock
 
 **/.DS_Store
 .DS_Store
+
+# Test sqlite databases for exploring sqlite file format internals
+misc/sqlite/fscs.sqlite
+misc/sqlite/classes2D.sqlite
+misc/sqlite/particles.sqlite
+misc/sqlite/tiltseries.sqlite

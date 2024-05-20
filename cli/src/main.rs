@@ -44,7 +44,7 @@ fn connect_database(command: ConnectDatabaseCommand) {
     dbg!(&command.name);
     match SQLiteEngine::open(&command.name).as_mut() {
         Ok(database) => start_repl(database),
-        Err(err) => println!("Unable to open database: {err:?}")
+        Err(err) => println!("Unable to open database: {err:?}"),
     }
 }
 

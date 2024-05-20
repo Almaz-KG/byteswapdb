@@ -51,6 +51,7 @@ impl TryFrom<u32> for SchemaFormat {
     }
 }
 
+#[allow(unused)]
 #[derive(Debug)]
 pub struct SQLiteDatabaseHeader {
     // 0	16	The header string: "SQLite format 3\000"
@@ -104,10 +105,9 @@ impl SQLiteDatabaseHeader {
     pub fn load(data: &[u8]) -> Result<Self, EngineError> {
         Ok(Self {
             header: String::from_utf8(data[0..16].to_vec()).map_err(|e| EngineError::StateError(format!("{e:?}")))?,
-            page_size: SQLiteDatabaseHeader::load_page_size(&data[17..=18]),
-            write_file_format: SQLiteDatabaseHeader::load_file_format(&data[19])?,
-            // read_file_format: SQLiteDatabaseHeader::load_file_format(&data[20])?,
-            read_file_format: FileFormat::WAL,
+            page_size: SQLiteDatabaseHeader::load_page_size(&data[16..=17]),
+            write_file_format: SQLiteDatabaseHeader::load_file_format(&data[18])?,
+            read_file_format: SQLiteDatabaseHeader::load_file_format(&data[19])?,
             max_embedded_payload: data[21],
             min_embedded_payload: data[22],
             lead_payload: data[23],
@@ -151,8 +151,7 @@ impl SQLiteDatabaseHeader {
 
 #[derive(Debug)]
 pub struct SQLiteDatabase {
-    header: SQLiteDatabaseHeader
-    
+    pub header: SQLiteDatabaseHeader
 }
 
 impl SQLiteDatabase {
