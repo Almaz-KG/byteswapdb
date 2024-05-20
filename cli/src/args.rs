@@ -13,8 +13,14 @@ pub enum Commands {
     /// Parses the given sql string and prints the result to stdout
     Parse(SqlQuery),
 
-    /// Runs a Read-Eval-Print-Loop (REPL)
-    Repl,
+    /// Prints the query plan for the given sql query
+    Plan(SqlQuery),
+
+    /// Creates a new database with the given name
+    Create(CreateDatabaseCommand),
+
+    /// Connects to the given database and opens REPL session
+    Connect(ConnectDatabaseCommand),
 }
 
 #[derive(Debug, Args)]
@@ -22,4 +28,17 @@ pub struct SqlQuery {
     /// An sql string to parse and print
     #[arg(short, long)]
     pub query: String,
+}
+
+#[derive(Debug, Args)]
+pub struct CreateDatabaseCommand {
+    /// A database name
+    #[arg(short, long)]
+    pub name: String,
+}
+
+#[derive(Debug, Args)]
+pub struct ConnectDatabaseCommand {
+    /// A database name
+    pub name: String,
 }

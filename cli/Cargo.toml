@@ -7,3 +7,4 @@ edition = { workspace = true }
 [dependencies]
 clap = { workspace = true, features = ["derive"] }
 sql = { workspace = true }
+engine = { workspace = true }
