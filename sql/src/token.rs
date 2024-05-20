@@ -12,10 +12,18 @@ pub enum Token {
     Period,
     /// The equals symbol =
     Equals,
+    /// The double equals symbol ==
+    DoubleEquals,
+    /// The not equals symbol != or <>
+    NotEquals,
     /// The greater-than symbol >
     GreaterThan,
+    /// The greater-or-equal symbol >
+    GreaterOrEqual,
     /// The less-than symbol <
     LessThan,
+    /// The less-or-equal symbol <=
+    LessOrEqual,
     /// The addition symbol +
     Plus,
     /// The subtraction symbol -
@@ -38,6 +46,10 @@ pub enum Token {
     Comma,
     /// A semi-colon ;
     SemiColon,
+    /// A pipe |
+    Pipe,
+    /// A double pipe ||
+    DoublePipe,
 }
 
 impl Display for Token {

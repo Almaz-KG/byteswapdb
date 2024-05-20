@@ -139,7 +139,17 @@ impl<'a> Lexer<'a> {
             ')' => Some(Token::CloseParen),
             ',' => Some(Token::Comma),
             ';' => Some(Token::SemiColon),
+            '|' => Some(Token::Pipe),
             _ => None,
+        })
+        .map(|token| match token {
+            Token::Equals if self.next_if(|c| c == '=').is_some() => Token::DoubleEquals,
+            Token::Exclamation if self.next_if(|c| c == '=').is_some() => Token::NotEquals,
+            Token::LessThan if self.next_if(|c| c == '>').is_some() => Token::NotEquals,
+            Token::LessThan if self.next_if(|c| c == '=').is_some() => Token::LessOrEqual,
+            Token::GreaterThan if self.next_if(|c| c == '=').is_some() => Token::GreaterOrEqual,
+            Token::Pipe if self.next_if(|c| c == '|').is_some() => Token::DoublePipe,
+            _ => token,
         })
     }
 }
@@ -170,9 +180,10 @@ mod tests {
     #[test]
     fn literal_number() {
         assert_scan(
-            "0 1 3.14 293. -2.718 3.14e3 2.718E-2",
+            "0 00 1 3.14 293. -2.718 3.14e3 2.718E-2",
             vec![
                 Token::Number("0".into()),
+                Token::Number("00".into()),
                 Token::Number("1".into()),
                 Token::Number("3.14".into()),
                 Token::Number("293.".into()),
@@ -182,6 +193,71 @@ mod tests {
                 Token::Number("2.718E-2".into()),
             ],
         )
+    }
+
+    #[test]
+    fn test_special_characters() {
+        for (c, token) in [
+            ('(', Token::OpenParen),
+            (')', Token::CloseParen),
+            ('*', Token::Asterisk),
+            ('+', Token::Plus),
+            (',', Token::Comma),
+            ('-', Token::Minus),
+            ('.', Token::Period),
+            (';', Token::SemiColon),
+        ] {
+            let input = format!("{c}");
+            assert_scan(&input, vec![token.clone()]);
+
+            let input = format!("{c}abc");
+            assert_scan(&input, vec![token, Token::Identifier("abc".into())]);
+        }
+    }
+
+    #[test]
+    fn test_space() {
+        assert_scan(" ", vec![]);
+        assert_scan("      ", vec![]);
+        assert_scan("a", vec![Token::Identifier("a".into())]);
+        assert_scan("     a", vec![Token::Identifier("a".into())]);
+
+        assert_scan("\t", vec![]);
+        assert_scan("\n", vec![]);
+        assert_scan("\x0b", vec![]);
+        assert_scan("\x0c", vec![]);
+        assert_scan("\r", vec![]);
+        assert_scan("  \t\n\x0b\x0c\r", vec![]);
+    }
+
+    #[test]
+    fn test_binary_operators() {
+        for (s, token) in [
+            ("*", Token::Asterisk),
+            (".", Token::Period),
+            ("=", Token::Equals),
+            (">", Token::GreaterThan),
+            ("<", Token::LessThan),
+            ("+", Token::Plus),
+            ("-", Token::Minus),
+            ("/", Token::Slash),
+            ("%", Token::Percent),
+            ("!", Token::Exclamation),
+            ("?", Token::Question),
+            ("(", Token::OpenParen),
+            (")", Token::CloseParen),
+            (",", Token::Comma),
+            (";", Token::SemiColon),
+            ("|", Token::Pipe),
+            ("==", Token::DoubleEquals),
+            ("!=", Token::NotEquals),
+            ("<>", Token::NotEquals),
+            ("<=", Token::LessOrEqual),
+            (">=", Token::GreaterOrEqual),
+            ("||", Token::DoublePipe),
+        ] {
+            assert_scan(s, vec![token]);
+        }
     }
 
     #[test]
