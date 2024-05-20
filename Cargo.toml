@@ -1,12 +1,12 @@
 [workspace.package]
 authors = ["Almaz Murzabekov <almaz@murzabekov.net>"]
-name = "byteswapdb"
 version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
 
 [workspace]
 members = ["cli", "common", "sql"]
+resolver = "2"
 
 [profile.release]
 strip = true
