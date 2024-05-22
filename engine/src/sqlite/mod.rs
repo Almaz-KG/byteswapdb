@@ -7,8 +7,9 @@ use std::fs::File;
 use std::path::Path;
 use std::io::Read;
 
+#[derive(Debug)]
 pub struct SQLiteEngine {
-    database: SQLiteDatabase,
+    pub database: SQLiteDatabase,
 }
 
 impl SQLiteEngine {
@@ -20,7 +21,6 @@ impl SQLiteEngine {
         file.read_exact(&mut data).map_err(|e| EngineError::FileSystemError(format!("{e:?}")))?;
         
         let database = SQLiteDatabase::load(data)?;
-        dbg!(&database);
         Ok(Self{database})
     }
 

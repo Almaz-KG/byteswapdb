@@ -20,7 +20,11 @@ pub enum Commands {
     Create(CreateDatabaseCommand),
 
     /// Connects to the given database and opens REPL session
-    Connect(ConnectDatabaseCommand),
+    Connect(DatabaseName),
+
+    /// Show status information about the given database
+    #[clap(name = ".dbinfo")]
+    DbInfo(DatabaseName),
 }
 
 #[derive(Debug, Args)]
@@ -38,7 +42,7 @@ pub struct CreateDatabaseCommand {
 }
 
 #[derive(Debug, Args)]
-pub struct ConnectDatabaseCommand {
+pub struct DatabaseName {
     /// A database name
     pub name: String,
 }

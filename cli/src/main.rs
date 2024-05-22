@@ -2,7 +2,7 @@
 mod args;
 
 use crate::args::{Cli, Commands};
-use args::{ConnectDatabaseCommand, CreateDatabaseCommand};
+use args::{DatabaseName, CreateDatabaseCommand};
 use clap::Parser;
 use sql::{Lexer, Token};
 use std::{
@@ -40,10 +40,19 @@ fn create_database(_command: CreateDatabaseCommand) {
     todo!()
 }
 
-fn connect_database(command: ConnectDatabaseCommand) {
-    dbg!(&command.name);
-    match SQLiteEngine::open(&command.name).as_mut() {
+fn connect_database(command: DatabaseName) {
+    match SQLiteEngine::open(command.name).as_mut() {
         Ok(database) => start_repl(database),
+        Err(err) => println!("Unable to open database: {err:?}"),
+    }
+}
+
+fn database_info(command: DatabaseName) {
+    match SQLiteEngine::open(command.name){
+        Ok(database) => {
+            let db = &database.database;
+            println!("{db}");
+        },
         Err(err) => println!("Unable to open database: {err:?}"),
     }
 }
@@ -54,6 +63,7 @@ fn main() {
         Commands::Parse(query) => parse_sql_query(&query.query),
         Commands::Plan(query) => parse_sql_query(&query.query),
         Commands::Create(command) => create_database(command),
-        Commands::Connect(command) => connect_database(command),
+        Commands::Connect(db) => connect_database(db),
+        Commands::DbInfo(db) => database_info(db),
     };
 }
