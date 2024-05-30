@@ -23,13 +23,25 @@ impl<'a> Parser<'a> {
     pub fn parse(&mut self) -> Result<Ast, ParsingError> {
         let keyword: Keyword = self.current()?.expect("Expected a keyword");
 
+        // Derived from `SQL As Understood By SQLite` docs
         match keyword {
-            Keyword::Select => self.parse_select(),
+            Keyword::Alter => unimplemented!(),
+            Keyword::Analyse => unimplemented!(),
+            Keyword::Attach => unimplemented!(),
+            Keyword::Begin => unimplemented!(),
+            Keyword::Commit => unimplemented!(),
             Keyword::Create => unimplemented!(),
-            Keyword::Drop => unimplemented!(),
             Keyword::Delete => unimplemented!(),
+            Keyword::Detach => unimplemented!(),
+            Keyword::Drop => unimplemented!(),
             Keyword::Insert => unimplemented!(),
+            Keyword::Reindex => unimplemented!(),
+            Keyword::Release => unimplemented!(),
+            Keyword::Rollback => unimplemented!(),
+            Keyword::Savepoint => unimplemented!(),
+            Keyword::Select => self.parse_select(),
             Keyword::Update => unimplemented!(),
+            Keyword::Vacuum => unimplemented!(),
             Keyword::Explain => unimplemented!(),
             _ => Err(ParsingError::UnexpectedToken(keyword.to_string())),
         }
