@@ -2,7 +2,6 @@ use std::fmt::Display;
 
 use crate::errors::DatabaseError;
 
-
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, Copy)]
 #[repr(u8)]
@@ -21,7 +20,9 @@ impl TryFrom<u32> for TextEncoding {
             1 => Ok(TextEncoding::UTF_8),
             2 => Ok(TextEncoding::UTF_16le),
             3 => Ok(TextEncoding::UTF_16be),
-            _ => Err(DatabaseError::StateError(format!("Unsupported text encoding: {value}")))
+            _ => Err(DatabaseError::StateError(format!(
+                "Unsupported text encoding: {value}"
+            ))),
         }
     }
 }

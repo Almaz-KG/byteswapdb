@@ -2,7 +2,7 @@
 mod args;
 
 use crate::args::{Cli, Commands};
-use args::{DatabaseName, CreateDatabaseCommand};
+use args::{CreateDatabaseCommand, DatabaseName};
 use clap::Parser;
 use sql::{Lexer, Token};
 use std::io::{self, Result, Write};
@@ -45,10 +45,10 @@ fn connect_database(command: DatabaseName) {
 }
 
 fn database_info(command: DatabaseName) {
-    match Database::open(command.name){
+    match Database::open(command.name) {
         Ok(database) => {
             database.print_info();
-        },
+        }
         Err(err) => println!("Unable to open database: {err:?}"),
     }
 }

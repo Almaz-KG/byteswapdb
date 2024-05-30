@@ -138,14 +138,18 @@ pub enum Keyword {
     Vacuum,
     Values,
     Where,
+    With,
 }
 
 impl From<&Keyword> for &str {
     fn from(value: &Keyword) -> Self {
         match value {
+            Keyword::Alter => "alter",
+            Keyword::Analyse => "analyse",
             Keyword::And => "and",
             Keyword::As => "as",
             Keyword::Asc => "asc",
+            Keyword::Attach => "attach",
             Keyword::Begin => "begin",
             Keyword::Boolean => "boolean",
             Keyword::By => "by",
@@ -155,14 +159,15 @@ impl From<&Keyword> for &str {
             Keyword::Cross => "cross",
             Keyword::Delete => "delete",
             Keyword::Desc => "desc",
+            Keyword::Detach => "detach",
             Keyword::Distinct => "distinct",
             Keyword::Double => "double",
             Keyword::Drop => "drop",
             Keyword::Exists => "exists",
             Keyword::Explain => "explain",
             Keyword::False => "false",
-            Keyword::From => "from",
             Keyword::File => "file",
+            Keyword::From => "from",
             Keyword::Group => "group",
             Keyword::Having => "having",
             Keyword::If => "if",
@@ -182,8 +187,11 @@ impl From<&Keyword> for &str {
             Keyword::Order => "order",
             Keyword::Outer => "outer",
             Keyword::Primary => "primary",
+            Keyword::Reindex => "reindex",
+            Keyword::Release => "release",
             Keyword::Right => "right",
             Keyword::Rollback => "rollback",
+            Keyword::Savepoint => "savepoint",
             Keyword::Select => "select",
             Keyword::Table => "table",
             Keyword::Text => "text",
@@ -191,8 +199,10 @@ impl From<&Keyword> for &str {
             Keyword::True => "true",
             Keyword::Unique => "unique",
             Keyword::Update => "update",
+            Keyword::Vacuum => "vacuum",
             Keyword::Values => "values",
             Keyword::Where => "where",
+            Keyword::With => "with",
         }
     }
 }

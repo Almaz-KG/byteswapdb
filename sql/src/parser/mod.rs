@@ -39,10 +39,11 @@ impl<'a> Parser<'a> {
             Keyword::Release => unimplemented!(),
             Keyword::Rollback => unimplemented!(),
             Keyword::Savepoint => unimplemented!(),
-            Keyword::Select => self.parse_select(),
+            Keyword::Select | Keyword::With => self.parse_select(),
             Keyword::Update => unimplemented!(),
             Keyword::Vacuum => unimplemented!(),
             Keyword::Explain => unimplemented!(),
+
             _ => Err(ParsingError::UnexpectedToken(keyword.to_string())),
         }
     }

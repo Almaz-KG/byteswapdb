@@ -18,7 +18,9 @@ impl TryFrom<u32> for SchemaFormat {
             2 => Ok(SchemaFormat::Format2),
             3 => Ok(SchemaFormat::Format3),
             4 => Ok(SchemaFormat::Format4),
-            _ => Err(DatabaseError::StateError(format!("Unsupported schema format: {value}")))
+            _ => Err(DatabaseError::StateError(format!(
+                "Unsupported schema format: {value}"
+            ))),
         }
     }
 }

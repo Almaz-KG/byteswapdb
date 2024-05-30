@@ -14,7 +14,9 @@ impl TryFrom<u8> for FileFormat {
         match value {
             1 => Ok(FileFormat::Legacy),
             2 => Ok(FileFormat::WAL),
-            _ => Err(DatabaseError::StateError(format!("Unknown file format: {value}")))
+            _ => Err(DatabaseError::StateError(format!(
+                "Unknown file format: {value}"
+            ))),
         }
     }
 }

@@ -1,8 +1,7 @@
+use crate::errors::DatabaseError;
 use crate::sqlite::FileFormat;
 use crate::sqlite::SchemaFormat;
 use crate::sqlite::TextEncoding;
-use crate::errors::DatabaseError;
-
 
 #[allow(unused)]
 #[derive(Debug)]
@@ -58,7 +57,8 @@ pub struct Header {
 impl Header {
     pub fn load(data: &[u8]) -> Result<Self, DatabaseError> {
         Ok(Self {
-            header: String::from_utf8(data[0..16].to_vec()).map_err(|e| DatabaseError::StateError(format!("{e:?}")))?,
+            header: String::from_utf8(data[0..16].to_vec())
+                .map_err(|e| DatabaseError::StateError(format!("{e:?}")))?,
             page_size: Header::load_page_size(&data[16..=17]),
             write_format: data[18].try_into()?,
             read_format: data[19].try_into()?,
@@ -68,15 +68,20 @@ impl Header {
             lead_payload: data[23],
             file_change_counter: u32::from_be_bytes([data[24], data[25], data[26], data[27]]),
             database_page_count: u32::from_be_bytes([data[28], data[29], data[30], data[31]]),
-            first_page_number_trunk_page: u32::from_be_bytes([data[32], data[33], data[34], data[35]]),
+            first_page_number_trunk_page: u32::from_be_bytes([
+                data[32], data[33], data[34], data[35],
+            ]),
             freelist_page_count: u32::from_be_bytes([data[36], data[37], data[38], data[39]]),
             schema_cookie: u32::from_be_bytes([data[40], data[41], data[42], data[43]]),
-            schema_format: u32::from_be_bytes([data[44], data[45], data[46], data[47]]).try_into()?,
+            schema_format: u32::from_be_bytes([data[44], data[45], data[46], data[47]])
+                .try_into()?,
             default_page_cache_size: u32::from_be_bytes([data[48], data[49], data[50], data[51]]),
             autovacuum_top_root: u32::from_be_bytes([data[52], data[53], data[54], data[55]]),
-            text_encoding: u32::from_be_bytes([data[56], data[57], data[58], data[59]]).try_into()?,
+            text_encoding: u32::from_be_bytes([data[56], data[57], data[58], data[59]])
+                .try_into()?,
             user_version: u32::from_be_bytes([data[60], data[61], data[62], data[63]]),
-            incremental_vacuum_mode: u32::from_be_bytes([data[64], data[65], data[66], data[67]]) != 0,
+            incremental_vacuum_mode: u32::from_be_bytes([data[64], data[65], data[66], data[67]])
+                != 0,
             application_id: u32::from_be_bytes([data[68], data[69], data[70], data[71]]),
             // reserved: data[72..92].to_vec(),
             valid_for_verison: u32::from_be_bytes([data[92], data[93], data[94], data[95]]),
@@ -93,5 +98,4 @@ impl Header {
             x as u32
         }
     }
-
 }

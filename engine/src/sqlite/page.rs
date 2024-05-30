@@ -10,7 +10,7 @@ pub enum PageType {
     // A value of 10 (0x0a) means the page is a leaf index b-tree page.
     LeafIndexPage = 10,
     // A value of 13 (0x0d) means the page is a leaf table b-tree page.
-    LeafTablePage = 13
+    LeafTablePage = 13,
 }
 
 impl TryFrom<u8> for PageType {
@@ -22,7 +22,9 @@ impl TryFrom<u8> for PageType {
             5 => Ok(Self::InteriorTablePage),
             10 => Ok(Self::LeafIndexPage),
             13 => Ok(Self::LeafTablePage),
-            _ => Err(DatabaseError::StateError(format!("Unknown page type: {value}")))
+            _ => Err(DatabaseError::StateError(format!(
+                "Unknown page type: {value}"
+            ))),
         }
     }
 }
