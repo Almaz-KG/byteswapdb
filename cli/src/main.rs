@@ -5,19 +5,16 @@ use crate::args::{Cli, Commands};
 use args::{DatabaseName, CreateDatabaseCommand};
 use clap::Parser;
 use sql::{Lexer, Token};
-use std::{
-    io,
-    io::{Result, Write},
-};
+use std::io::{self, Result, Write};
 
-use engine::SQLiteEngine;
+use engine::sqlite::Database;
 
 fn parse_sql_query(query: &str) {
     let vec: Vec<Token> = Lexer::new(query).map(|option| option.unwrap()).collect();
     println!("{:?}", vec);
 }
 
-fn start_repl(database: &mut SQLiteEngine) {
+fn start_repl(database: &mut Database) {
     fn get_command() -> Result<String> {
         print!("[bsdb-cli]> ");
         io::stdout().flush()?;
@@ -41,17 +38,16 @@ fn create_database(_command: CreateDatabaseCommand) {
 }
 
 fn connect_database(command: DatabaseName) {
-    match SQLiteEngine::open(command.name).as_mut() {
+    match Database::open(command.name).as_mut() {
         Ok(database) => start_repl(database),
         Err(err) => println!("Unable to open database: {err:?}"),
     }
 }
 
 fn database_info(command: DatabaseName) {
-    match SQLiteEngine::open(command.name){
+    match Database::open(command.name){
         Ok(database) => {
-            let db = &database.database;
-            println!("{db}");
+            database.print_info();
         },
         Err(err) => println!("Unable to open database: {err:?}"),
     }
